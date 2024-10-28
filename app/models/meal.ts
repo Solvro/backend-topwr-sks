@@ -21,6 +21,9 @@ export default class Meal extends BaseModel {
   declare type: MealType
 
   @column()
+  declare size: string
+
+  @column()
   declare price: number
 
   @column.dateTime({ autoCreate: true })
