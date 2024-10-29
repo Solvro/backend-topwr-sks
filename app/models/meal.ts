@@ -8,6 +8,7 @@ export enum MealCategory {
   MEAT_DISH = 'meat_dish',
   DESSERT = 'dessert',
   SIDE_DISH = 'side_dish',
+  DRINK = 'drink',
 }
 
 export default class Meal extends BaseModel {
