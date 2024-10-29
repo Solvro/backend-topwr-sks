@@ -1,5 +1,5 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
-import { MealType } from '#models/meal'
+import { MealCategory } from '#models/meal'
 
 export default class extends BaseSchema {
   protected tableName = 'meals'
@@ -9,7 +9,7 @@ export default class extends BaseSchema {
       table.increments('id')
 
       table.text('name')
-      table.enum('type', Object.keys(MealType))
+      table.enum('category', Object.keys(MealCategory))
       table.text('size')
       table.decimal('price', 4, 2)
 

@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 
-export enum MealType {
+export enum MealCategory {
   SALAD = 'salad',
   SOUP = 'soup',
   VEGETARIAN_DISH = 'vegetarian_dish',
@@ -18,7 +18,7 @@ export default class Meal extends BaseModel {
   declare name: string
 
   @column()
-  declare type: MealType
+  declare category: MealCategory
 
   @column()
   declare size: string
