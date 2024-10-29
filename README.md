@@ -14,6 +14,7 @@ SKS Menu Scraper is a tool designed to automatically fetch and parse information
    cd backend-topwr-sks
    ```
 2. Install the required dependencies:
+
    ```bash
    npm install
    ```
@@ -24,16 +25,17 @@ SKS Menu Scraper is a tool designed to automatically fetch and parse information
    ```bash
    node ace migration:run
    ```
-   
 5. Start the development server:
    ```bash
     npm run dev
-    ```
+   ```
 
 ## Technologies
+
 - Node.js
 - Adonis.js
 - PostgreSQL
 
 ## Database Schema
+
 ![schema](./assets/schema.png)
