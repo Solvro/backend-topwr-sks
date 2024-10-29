@@ -18,10 +18,10 @@ export default class Meal extends BaseModel {
   declare name: string
 
   @column()
-  declare category: MealCategory
+  declare category: MealCategory | null
 
   @column()
-  declare size: string
+  declare size: string | null
 
   @column()
   declare price: number

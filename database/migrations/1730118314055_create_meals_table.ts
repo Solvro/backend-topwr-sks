@@ -8,10 +8,10 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
 
-      table.text('name')
+      table.text('name').notNullable()
       table.enum('category', Object.keys(MealCategory))
       table.text('size')
-      table.decimal('price', 4, 2)
+      table.decimal('price', 4, 2).notNullable()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')
