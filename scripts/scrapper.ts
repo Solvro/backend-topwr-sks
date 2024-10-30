@@ -13,32 +13,23 @@ export async function runScrapper() {
   const storedHash = await WebsiteHash.first()
 
   const trx = await db.transaction()
-
-  if (!storedHash) {
-    logger.info('No hash found in database. Storing current hash and scraping menu.')
-    try {
-      await WebsiteHash.create({ hash: currentHash }, { client: trx })
-      const meals = await scrapeMenu()
-      await Meal.query({ client: trx }).delete()
-      await Meal.createMany(meals, { client: trx })
-      logger.info('Menu updated successfully.')
-    } catch (error) {
-      await trx.rollback()
-      logger.error(`Failed to update menu: ${error.message}`, error.stack)
-    }
-    return
-  }
-
-  if (storedHash.hash === currentHash) {
-    logger.info('Did not find any differences. Not proceeding with scraping.')
-    return
-  }
-
   try {
+    if (!storedHash) {
+      logger.info('No hash found in database. Storing current hash and scraping menu.')
+      await WebsiteHash.create({ hash: currentHash }, { client: trx })
+    } else if (storedHash.hash === currentHash) {
+      logger.info('Did not find any differences. Not proceeding with scraping.')
+      return
+    }
+
     const meals = await scrapeMenu()
     await Meal.query({ client: trx }).delete()
     await Meal.createMany(meals, { client: trx })
-    await storedHash.merge({ hash: currentHash }).save()
+
+    if (storedHash) {
+      await storedHash.merge({ hash: currentHash }).save()
+    }
+
     await trx.commit()
     logger.info('Menu updated successfully.')
   } catch (error) {
