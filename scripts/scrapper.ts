@@ -14,11 +14,12 @@ export async function runScrapper() {
 
   const trx = await db.transaction()
   try {
-    if (!storedHash) {
+    if (storedHash === null || storedHash.hash === '') {
       logger.info('No hash found in database. Storing current hash and scraping menu.')
       await WebsiteHash.create({ hash: currentHash }, { client: trx })
     } else if (storedHash.hash === currentHash) {
       logger.info('Did not find any differences. Not proceeding with scraping.')
+      await trx.rollback()
       return
     }
 

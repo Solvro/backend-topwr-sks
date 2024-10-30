@@ -5,7 +5,7 @@ import logger from '@adonisjs/core/services/logger'
 scheduler
   .call(() => {
     logger.info('Running scraper.')
-    runScrapper().then()
+    void runScrapper()
   })
   .immediate()
   .everyFifteenMinutes()
