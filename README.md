@@ -37,16 +37,22 @@ SKS Menu Scraper is a tool designed to automatically fetch and parse information
     node ace scheduler:work
    ```
 
+   Alternatively run scraping script once:
+
+   ```bash
+   node ace scrape
+   ```
+
 6. Start the development server:
 
    ```bash
    npm run dev
    ```
 
-   Alternatively run scraping script once:
+7. Access the data using:
 
    ```bash
-   node ace scrape
+   curl -X GET http://localhost:3333/api/v1/meals
    ```
 
    Alternatively run scraping script once:
