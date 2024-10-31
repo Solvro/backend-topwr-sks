@@ -2,13 +2,13 @@ import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 
 export enum MealCategory {
-  SALAD = 'salad',
-  SOUP = 'soup',
-  VEGETARIAN_DISH = 'vegetarian_dish',
-  MEAT_DISH = 'meat_dish',
-  DESSERT = 'dessert',
-  SIDE_DISH = 'side_dish',
-  DRINK = 'drink',
+  SALAD = 'SALAD',
+  SOUP = 'SOUP',
+  VEGETARIAN_DISH = 'VEGETARIAN_DISH',
+  MEAT_DISH = 'MEAT_DISH',
+  DESSERT = 'DESSERT',
+  SIDE_DISH = 'SIDE_DISH',
+  DRINK = 'DRINK',
 }
 
 export default class Meal extends BaseModel {

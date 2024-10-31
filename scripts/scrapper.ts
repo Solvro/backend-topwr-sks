@@ -1,10 +1,45 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
-import { MealCategory } from '#models/meal'
+import Meal, { MealCategory } from '#models/meal'
+import { createHash } from 'node:crypto'
+import db from '@adonisjs/lucid/services/db'
+import WebsiteHash from '#models/website_hash'
+import logger from '@adonisjs/core/services/logger'
+
+const url = 'https://sks.pwr.edu.pl/menu/'
+
+export async function runScrapper() {
+  const currentHash = await cacheMenu()
+  const storedHash = await WebsiteHash.first()
+
+  const trx = await db.transaction()
+  try {
+    if (storedHash === null || storedHash.hash === '') {
+      logger.info('No hash found in database. Storing current hash and scraping menu.')
+      await WebsiteHash.create({ hash: currentHash }, { client: trx })
+    } else if (storedHash.hash === currentHash) {
+      logger.info('Did not find any differences. Not proceeding with scraping.')
+      await trx.rollback()
+      return
+    }
+
+    const meals = await scrapeMenu()
+    await Meal.query({ client: trx }).delete()
+    await Meal.createMany(meals, { client: trx })
+
+    if (storedHash) {
+      await storedHash.merge({ hash: currentHash }).save()
+    }
+
+    await trx.commit()
+    logger.info('Menu updated successfully.')
+  } catch (error) {
+    await trx.rollback()
+    logger.error(`Failed to update menu: ${error.message}`, error.stack)
+  }
+}
 
 export async function scrapeMenu() {
-  const url = 'https://sks.pwr.edu.pl/menu/'
-
   const response = await axios.get(url)
   const $ = cheerio.load(response.data)
 
@@ -36,6 +71,11 @@ export async function scrapeMenu() {
     })
     .get()
     .flat()
+}
+
+export async function cacheMenu() {
+  const response = await axios.get(url)
+  return createHash('sha256').update(response.data).digest('hex')
 }
 
 function assignCategories(category: string) {
