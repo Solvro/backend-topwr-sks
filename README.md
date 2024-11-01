@@ -4,7 +4,7 @@
 
 ## Description
 
-SKS Menu Scraper is a tool designed to automatically fetch and parse information about canteen menus, such as dish names, portion sizes, and prices. The project saves the scraped data into a database and provides a RESTful API for users to access menu items.
+SKS Menu Scraper is a tool designed to automatically fetch and parse information about canteen menus, such as dish names, portion sizes, and prices. The project saves the scraped data into a database and provides a RESTful API for users to access menu items
 
 ## Development
 
