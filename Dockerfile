@@ -33,6 +33,5 @@ COPY --from=build /app/build /app
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
-# Expose port and set CMD to run the wrapper script
-EXPOSE 8080
+# Set CMD to run the wrapper script
 CMD ["sh", "/app/start.sh"]
