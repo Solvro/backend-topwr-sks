@@ -1,3 +1,4 @@
+# Base stage
 FROM node:20.12.2-alpine3.18 AS base
 
 # All deps stage
@@ -6,7 +7,7 @@ WORKDIR /app
 ADD package.json package-lock.json ./
 RUN npm ci
 
-# Production only deps stage
+# Production-only deps stage
 FROM base AS production-deps
 WORKDIR /app
 ADD package.json package-lock.json ./
@@ -23,7 +24,15 @@ RUN node ace build
 FROM base
 ENV NODE_ENV=production
 WORKDIR /app
+
+# Copy production dependencies and build output
 COPY --from=production-deps /app/node_modules /app/node_modules
 COPY --from=build /app/build /app
+
+# Add the wrapper script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Expose port and set CMD to run the wrapper script
 EXPOSE 8080
-CMD ["node", "./bin/server.js"]
+CMD ["sh", "/app/start.sh"]
