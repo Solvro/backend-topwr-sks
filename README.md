@@ -6,6 +6,15 @@
 
 SKS Menu Scraper is a tool designed to automatically fetch and parse information about canteen menus, such as dish names, portion sizes, and prices. The project saves the scraped data into a database and provides a RESTful API for users to access menu items
 
+## Endpoints
+
+The API is available at `api.topwr.solvro.pl`. The following endpoint is available (more coming soon):
+
+- **GET** `api/v1/meals`
+  - Retrieves a list of all menu items, including dish names, sizes, and prices.
+  - Note: If the SKS site does not display the menu, this endpoint returns an empty list.
+  - **Example**: `curl -X GET https://api.topwr.solvro.pl/api/v1/meals`
+
 ## Development
 
 1. Clone the repository:
@@ -21,15 +30,21 @@ SKS Menu Scraper is a tool designed to automatically fetch and parse information
    npm install
    ```
 
-3. Set up the environment variables in the `.env` file using the `.env.example` template.
+3. Set up the PostgreSQL database:
 
-4. Run migrations to create the database schema:
+   - Ensure PostgreSQL is installed and running.
+   - Create a new database.
+   - Update the `.env` file with your PostgreSQL credentials and database name.
+
+4. Set up the environment variables in the `.env` file using the `.env.example` template.
+
+5. Run migrations to create the database schema:
 
    ```bash
    node ace migration:run
    ```
 
-5. Run scheduler for scrapper:
+6. Run scheduler for scrapper:
 
    ```bash
     node ace scheduler:run
@@ -43,22 +58,16 @@ SKS Menu Scraper is a tool designed to automatically fetch and parse information
    node ace scrape
    ```
 
-6. Start the development server:
+7. Start the development server:
 
    ```bash
    npm run dev
    ```
 
-7. Access the data using:
+8. Access the data using:
 
    ```bash
    curl -X GET http://localhost:3333/api/v1/meals
-   ```
-
-   Alternatively run scraping script once:
-
-   ```bash
-   node ace scrape
    ```
 
 ## Technologies
@@ -66,6 +75,7 @@ SKS Menu Scraper is a tool designed to automatically fetch and parse information
 - Node.js
 - Adonis.js
 - PostgreSQL
+- Coolify
 
 ## Database Schema
 
