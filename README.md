@@ -1,6 +1,7 @@
 # SKS Menu Scrapper
 
-![Banner](./assets/solvro.png)
+![Solvro banner](./assets/solvro_dark.png#gh-dark-mode-only)
+![Solvro banner](./assets/solvro_light.png#gh-light-mode-only)
 
 ## Description
 
