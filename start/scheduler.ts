@@ -17,4 +17,4 @@ scheduler
     void runUsersScrapper()
   })
   .immediate()
-  .everyFiveMinutes()
+  .everyMinute()

@@ -19,42 +19,43 @@ export default class SksUsersController {
     try {
       const currentTime = DateTime.now().setZone('Europe/Warsaw').toSQL()
       if (currentTime === null) {
-        return response.status(500).json({ message: 'Failed to convert time to sql format' })
+        return response.status(500).json({ message: 'Failed to convert time to SQL format' })
       }
 
-      const latestData = await SksUser.query()
+      let latestData = await SksUser.query()
         .where('externalTimestamp', '<', currentTime)
         .orderBy('externalTimestamp', 'desc')
-        .offset(1) //get the second-latest record to ensure the data is already scraped
         .first()
+      let isResultRecent = true
+
+      // If the first record has activeUsers set to 0, get the second record instead
+      if (latestData !== null && latestData.activeUsers === 0) {
+        latestData = await SksUser.query()
+          .where('externalTimestamp', '<', currentTime)
+          .orderBy('externalTimestamp', 'desc')
+          .offset(1)
+          .first()
+        isResultRecent = false
+      }
+
       if (latestData === null) {
         return response
           .status(404)
           .json({ message: 'Could not find the matching data in database' })
       }
 
-      let trend: Trend
-      const trendData = await SksUser.query()
-        .where('externalTimestamp', '<', currentTime)
-        .orderBy('externalTimestamp', 'desc')
-        .offset(1 + trendDelta)
-        .first()
-      if (trendData === null) {
-        trend = Trend.STABLE // If no previous data, assume stable trend
-      } else {
-        const isIncreasing = trendData.activeUsers < latestData.activeUsers
-        const isDecreasing = trendData.activeUsers > latestData.activeUsers
-
-        if (isIncreasing) {
-          trend = Trend.INCREASING
-        } else if (isDecreasing) {
-          trend = Trend.DECREASING
-        } else {
-          trend = Trend.STABLE
-        }
+      const referenceTime = latestData.externalTimestamp?.toSQL() || ''
+      if (!referenceTime) {
+        return response
+          .status(500)
+          .json({ message: 'Failed to convert external timestamp to SQL format' })
       }
 
-      return response.status(200).json({ ...latestData.toJSON(), trend: trend })
+      const trend = await this.calculateTrend(latestData, referenceTime, trendDelta)
+
+      return response
+        .status(200)
+        .json({ ...latestData.toJSON(), trend: trend, isResultRecent: isResultRecent })
     } catch (error) {
       return response
         .status(500)
@@ -76,7 +77,7 @@ export default class SksUsersController {
         .toSQL()
 
       if (todayStart === null || todayEnd === null) {
-        return response.status(500).json({ message: 'Failed to convert time to sql format' })
+        return response.status(500).json({ message: 'Failed to convert time to SQL format' })
       }
 
       const todayData = await SksUser.query()
@@ -88,6 +89,33 @@ export default class SksUsersController {
       return response
         .status(500)
         .json({ message: "Failed to fetch today's SKS users", error: error.message })
+    }
+  }
+
+  /**
+   * Helper function to calculate trend
+   */
+  private async calculateTrend(
+    latestData: SksUser,
+    referenceTime: string,
+    delta: number
+  ): Promise<Trend> {
+    const trendData = await SksUser.query()
+      .where('externalTimestamp', '<', referenceTime)
+      .orderBy('externalTimestamp', 'desc')
+      .offset(delta)
+      .first()
+
+    if (trendData === null) {
+      return Trend.STABLE // If no previous data, assume stable trend
+    }
+
+    if (trendData.activeUsers < latestData.activeUsers) {
+      return Trend.INCREASING
+    } else if (trendData.activeUsers > latestData.activeUsers) {
+      return Trend.DECREASING
+    } else {
+      return Trend.STABLE
     }
   }
 }
