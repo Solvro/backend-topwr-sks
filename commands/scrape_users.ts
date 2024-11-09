@@ -11,6 +11,6 @@ export default class ScrapeUsers extends BaseCommand {
   }
 
   async run() {
-    console.log(await runScrapper())
+    await runScrapper()
   }
 }
