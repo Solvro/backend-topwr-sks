@@ -16,6 +16,8 @@ export async function runScrapper() {
     const currentDateTime = DateTime.now().setZone('Europe/Warsaw')
 
     const rows = usersData.trim().split('\n')
+    const dataToCreateOrUpdate = []
+
     for (const row of rows) {
       const [time, movingAverage21, activeUsers] = row.split(';')
       const timestamp = currentDateTime.set({
@@ -25,16 +27,15 @@ export async function runScrapper() {
         millisecond: 0,
       })
 
-      await SksUser.updateOrCreate(
-        {
-          externalTimestamp: timestamp,
-        },
-        {
-          activeUsers: Number(activeUsers),
-          movingAverage21: Number(movingAverage21),
-        }
-      )
+      dataToCreateOrUpdate.push({
+        externalTimestamp: timestamp,
+        activeUsers: Number(activeUsers),
+        movingAverage21: Number(movingAverage21),
+      })
     }
+
+    await SksUser.updateOrCreateMany('externalTimestamp', dataToCreateOrUpdate)
+
     logger.info(`SKS users data updated successfully.`)
   } catch (error) {
     logger.error(`Failed to update sks_users data: ${error.message}`, error.stack)
