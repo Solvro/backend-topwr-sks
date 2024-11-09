@@ -11,15 +11,12 @@ export async function runScrapper() {
       logger.error(`Failed to fetch data: ${response.status} ${response.statusText}`)
       return
     }
+
     const usersData = await response.text()
     const currentDateTime = DateTime.now().setZone('Europe/Warsaw')
-    const minutesFromMidnight = currentDateTime.hour * 60 + currentDateTime.minute
-    const updateBatchCount = Math.floor(minutesFromMidnight / 5)
 
-    const rows = usersData.split('\n')
-    const batchRows = rows.slice(0, updateBatchCount)
-
-    for (const row of batchRows) {
+    const rows = usersData.trim().split('\n')
+    for (const row of rows) {
       const [time, movingAverage21, activeUsers] = row.split(';')
       const timestamp = currentDateTime.set({
         hour: Number.parseInt(time.split(':')[0], 10),
@@ -38,7 +35,7 @@ export async function runScrapper() {
         }
       )
     }
-    logger.info(`Successfully processed and saved ${rows.length} rows of sks_users data.`)
+    logger.info(`SKS users data updated successfully.`)
   } catch (error) {
     logger.error(`Failed to update sks_users data: ${error.message}`, error.stack)
   }
