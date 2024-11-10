@@ -9,7 +9,7 @@ export default class extends BaseSchema {
 
       table.integer('active_users').notNullable()
       table.integer('moving_average_21').notNullable()
-      table.timestamp('external_timestamp').notNullable()
+      table.timestamp('external_timestamp').notNullable().unique()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

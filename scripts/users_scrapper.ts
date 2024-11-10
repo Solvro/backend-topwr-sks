@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
 import logger from '@adonisjs/core/services/logger'
-import SksUser from '#models/sks_user'
+import db from '@adonisjs/lucid/services/db'
 
 const url = 'https://live.pwr.edu.pl/sks/sks-data.csv'
 
@@ -16,26 +16,31 @@ export async function runScrapper() {
     const currentDateTime = DateTime.now().setZone('Europe/Warsaw')
 
     const rows = usersData.trim().split('\n')
-    const dataToCreateOrUpdate = []
 
-    for (const row of rows) {
-      const [time, movingAverage21, activeUsers] = row.split(';')
-      const timestamp = currentDateTime.set({
-        hour: Number.parseInt(time.split(':')[0], 10),
-        minute: Number.parseInt(time.split(':')[1], 10),
-        second: 0,
-        millisecond: 0,
+    const values = rows
+      .map((row) => {
+        const [time, movingAverage21, activeUsers] = row.split(';')
+        const timestamp = currentDateTime.set({
+          hour: Number.parseInt(time.split(':')[0], 10),
+          minute: Number.parseInt(time.split(':')[1], 10),
+          second: 0,
+          millisecond: 0,
+        })
+
+        return `('${timestamp}', ${Number(activeUsers)}, ${Number(movingAverage21)}, NOW(), NOW())`
       })
+      .join(', ')
 
-      dataToCreateOrUpdate.push({
-        externalTimestamp: timestamp,
-        activeUsers: Number(activeUsers),
-        movingAverage21: Number(movingAverage21),
-      })
-    }
+    const query = `
+        INSERT INTO sks_users (external_timestamp, active_users, moving_average_21, created_at, updated_at)
+        VALUES ${values}
+        ON CONFLICT (external_timestamp) DO UPDATE SET
+        active_users = EXCLUDED.active_users,
+        moving_average_21 = EXCLUDED.moving_average_21,
+        updated_at = NOW()
+    `
 
-    await SksUser.updateOrCreateMany('externalTimestamp', dataToCreateOrUpdate)
-
+    await db.rawQuery(query)
     logger.info(`SKS users data updated successfully.`)
   } catch (error) {
     logger.error(`Failed to update sks_users data: ${error.message}`, error.stack)
