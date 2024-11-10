@@ -17,30 +17,38 @@ export async function runScrapper() {
 
     const rows = usersData.trim().split('\n')
 
-    const values = rows
-      .map((row) => {
-        const [time, movingAverage21, activeUsers] = row.split(';')
-        const timestamp = currentDateTime.set({
-          hour: Number.parseInt(time.split(':')[0], 10),
-          minute: Number.parseInt(time.split(':')[1], 10),
-          second: 0,
-          millisecond: 0,
-        })
-
-        return `('${timestamp}', ${Number(activeUsers)}, ${Number(movingAverage21)}, NOW(), NOW())`
+    const values = rows.map((row) => {
+      const [time, movingAverage21, activeUsers] = row.split(';')
+      const timestamp = currentDateTime.set({
+        hour: Number.parseInt(time.split(':')[0], 10),
+        minute: Number.parseInt(time.split(':')[1], 10),
+        second: 0,
+        millisecond: 0,
       })
-      .join(', ')
+
+      return {
+        timestamp: timestamp,
+        activeUsers: Number(activeUsers),
+        movingAverage21: Number(movingAverage21),
+      }
+    })
 
     const query = `
-        INSERT INTO sks_users (external_timestamp, active_users, moving_average_21, created_at, updated_at)
-        VALUES ${values}
-        ON CONFLICT (external_timestamp) DO UPDATE SET
+      INSERT INTO sks_users (external_timestamp, active_users, moving_average_21, created_at, updated_at)
+      VALUES ${values.map(() => '(?, ?, ?, NOW(), NOW())').join(', ')}
+      ON CONFLICT (external_timestamp) DO UPDATE SET
         active_users = EXCLUDED.active_users,
         moving_average_21 = EXCLUDED.moving_average_21,
         updated_at = NOW()
     `
 
-    await db.rawQuery(query)
+    const parameters = values.flatMap(({ timestamp, activeUsers, movingAverage21 }) => [
+      timestamp,
+      activeUsers,
+      movingAverage21,
+    ])
+
+    await db.rawQuery(query, parameters)
     logger.info(`SKS users data updated successfully.`)
   } catch (error) {
     logger.error(`Failed to update sks_users data: ${error.message}`, error.stack)
