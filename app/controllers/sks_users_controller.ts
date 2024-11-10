@@ -22,40 +22,42 @@ export default class SksUsersController {
         return response.status(500).json({ message: 'Failed to convert time to SQL format' })
       }
 
-      let latestData = await SksUser.query()
+      const latestData = await SksUser.query()
         .where('externalTimestamp', '<', currentTime)
         .orderBy('externalTimestamp', 'desc')
         .first()
-      let isResultRecent = true
+
+      const isResultRecent = latestData !== null && latestData.activeUsers > 0
 
       // If the first record has activeUsers set to 0, get the second record instead
-      if (latestData !== null && latestData.activeUsers === 0) {
-        latestData = await SksUser.query()
-          .where('externalTimestamp', '<', currentTime)
-          .orderBy('externalTimestamp', 'desc')
-          .offset(1)
-          .first()
-        isResultRecent = false
-      }
+      const entryToReturn = isResultRecent
+        ? latestData
+        : await SksUser.query()
+            .where('externalTimestamp', '<', currentTime)
+            .orderBy('externalTimestamp', 'desc')
+            .offset(1)
+            .first()
 
-      if (latestData === null) {
+      if (entryToReturn === null) {
         return response
           .status(404)
           .json({ message: 'Could not find the matching data in database' })
       }
 
-      const referenceTime = latestData.externalTimestamp?.toSQL() || ''
-      if (!referenceTime) {
+      const referenceTime = entryToReturn.externalTimestamp
+      console.log(referenceTime)
+      if (referenceTime === null) {
         return response
           .status(500)
           .json({ message: 'Failed to convert external timestamp to SQL format' })
       }
 
-      const trend = await this.calculateTrend(latestData, referenceTime, trendDelta)
+      const trend = await this.calculateTrend(entryToReturn, referenceTime, trendDelta)
+      const nextUpdateTimestamp = entryToReturn.updatedAt.plus({ minute: 5, second: 30 })
 
       return response
         .status(200)
-        .json({ ...latestData.toJSON(), trend: trend, isResultRecent: isResultRecent })
+        .json({ ...entryToReturn.toJSON(), trend, isResultRecent, nextUpdateTimestamp })
     } catch (error) {
       return response
         .status(500)
