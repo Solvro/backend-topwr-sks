@@ -1,9 +1,9 @@
 import { BaseCommand } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
-import { runScrapper } from '../scripts/scrapper.js'
+import { runScrapper } from '../scripts/menu_scrapper.js'
 
-export default class Scrape extends BaseCommand {
-  static commandName = 'scrape'
+export default class ScrapeMenu extends BaseCommand {
+  static commandName = 'scrape:menu'
   static description = 'Scrape sks menu data.'
 
   static options: CommandOptions = {
