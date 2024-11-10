@@ -44,7 +44,7 @@ export default class SksUsersController {
           .json({ message: 'Could not find the matching data in database' })
       }
 
-      const referenceTime = entryToReturn.externalTimestamp
+      const referenceTime = entryToReturn.externalTimestamp.toSQL()
       console.log(referenceTime)
       if (referenceTime === null) {
         return response
