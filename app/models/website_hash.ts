@@ -5,6 +5,7 @@ import HashesMeal from './hashes_meal.js'
 
 export default class WebsiteHash extends BaseModel {
   @column({ isPrimary: true })
+  // @example(80845fe1a68deadbb4febc3f6dbae98b64a3df7a1648edd417a8ece3164182f4)
   declare hash: string
 
   @column.dateTime({ autoCreate: true })

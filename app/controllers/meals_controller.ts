@@ -5,7 +5,11 @@ import logger from '@adonisjs/core/services/logger'
 
 export default class MealsController {
   /**
-   * Display a list of resource
+   * @index
+   * @summary Retrieves a list of all menu items.
+   * @description Retrieves a list of all menu items, including dish names, sizes, and prices.
+   * @responseBody 200 - <Meal[]>
+   * @responseBody 500 - {"message": "Failed to fetch meals", "error": "Some error message"}
    */
   async current({ response }: HttpContext) {
     try {
