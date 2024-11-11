@@ -10,8 +10,6 @@ export default class extends BaseSchema {
 
       table.text('name').notNullable()
       table.enum('category', Object.keys(MealCategory))
-      table.text('size')
-      table.decimal('price', 4, 2).notNullable()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')
