@@ -9,11 +9,11 @@ import logger from '@adonisjs/core/services/logger'
 const url = 'https://sks.pwr.edu.pl/menu/'
 
 export async function runScrapper() {
-  const currentHash = await cacheMenu()
-  const storedHash = await WebsiteHash.first()
-
   const trx = await db.transaction()
   try {
+    const currentHash = await cacheMenu()
+    const storedHash = await WebsiteHash.first()
+
     if (storedHash === null || storedHash.hash === '') {
       logger.info('No hash found in database. Storing current hash and scraping menu.')
       await WebsiteHash.create({ hash: currentHash }, { client: trx })
