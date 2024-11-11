@@ -23,3 +23,11 @@ router
     })
   })
   .prefix('/api/v1')
+
+// Reroute some paths to docs
+const redirectPaths = ['/', '/api', '/api/v1', '/api/docs', '/docs']
+redirectPaths.forEach((path) => {
+  router.get(path, async ({ response }) => {
+    return response.redirect('/api/v1/docs')
+  })
+})
