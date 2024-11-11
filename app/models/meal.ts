@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, column, manyToMany } from '@adonisjs/lucid/orm'
+import WebsiteHash from './website_hash.js'
+import * as relations from '@adonisjs/lucid/types/relations'
 
 export enum MealCategory {
   SALAD = 'SALAD',
@@ -13,7 +15,7 @@ export enum MealCategory {
 
 export default class Meal extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
+  declare id: bigint
 
   @column()
   declare name: string
@@ -21,11 +23,14 @@ export default class Meal extends BaseModel {
   @column()
   declare category: MealCategory | null
 
-  @column()
-  declare size: string | null
-
-  @column()
-  declare price: number
+  @manyToMany(() => WebsiteHash, {
+    pivotTable: 'hashes_meals',
+    pivotColumns: ['size', 'price'],
+    pivotForeignKey: 'meal_id',
+    pivotRelatedForeignKey: 'hash_fk',
+    pivotTimestamps: true,
+  })
+  declare hashes: relations.ManyToMany<typeof WebsiteHash>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
