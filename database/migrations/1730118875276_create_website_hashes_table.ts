@@ -5,7 +5,7 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.text('hash').notNullable().unique()
+      table.text('hash').notNullable().unique().primary()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')
