@@ -1,5 +1,5 @@
 import HashesMeal from '#models/hashes_meal'
-import Meal from '#models/meal'
+import WebsiteHash from '#models/website_hash'
 import type { HttpContext } from '@adonisjs/core/http'
 import logger from '@adonisjs/core/services/logger'
 
@@ -9,8 +9,32 @@ export default class MealsController {
    */
   async index({ response }: HttpContext) {
     try {
-      const meals = await Meal.all()
-      return response.status(200).json(meals)
+      const lastHash = await WebsiteHash.query().orderBy('createdAt', 'desc').first()
+      if (!lastHash) {
+        return response.status(200).json([])
+      }
+      let isMenuOnline = true
+      let todayMeals = await getMealsByHash(lastHash.hash)
+
+      if (todayMeals.length === 0) {
+        const secondLastHash = await WebsiteHash.query()
+          .orderBy('createdAt', 'desc')
+          .offset(1)
+          .first()
+        if (!secondLastHash) {
+          return response.status(200).json([])
+        }
+        isMenuOnline = false
+        todayMeals = await getMealsByHash(secondLastHash.hash)
+      }
+
+      const meals = todayMeals.map((singleMeal) => ({
+        ...singleMeal.meal.serialize(),
+        price: singleMeal.price,
+        size: singleMeal.size,
+      }))
+
+      return response.status(200).json({ meals, isMenuOnline: isMenuOnline })
     } catch (error) {
       return response.status(500).json({ message: 'Failed to fetch meals', error: error.message })
     }
