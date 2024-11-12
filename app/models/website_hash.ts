@@ -1,24 +1,18 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, manyToMany } from '@adonisjs/lucid/orm'
-import Meal from './meal.js'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import * as relations from '@adonisjs/lucid/types/relations'
+import HashesMeal from './hashes_meal.js'
 
 export default class WebsiteHash extends BaseModel {
   @column({ isPrimary: true })
   declare hash: string
-
-  @manyToMany(() => Meal, {
-    pivotTable: 'hashes_meals',
-    pivotColumns: ['size', 'price'],
-    pivotForeignKey: 'hash_fk',
-    pivotRelatedForeignKey: 'meal_id',
-    pivotTimestamps: true,
-  })
-  declare meals: relations.ManyToMany<typeof Meal>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  @hasMany(() => HashesMeal)
+  declare meals: relations.HasMany<typeof HashesMeal>
 }
