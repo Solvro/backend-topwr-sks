@@ -7,7 +7,7 @@ export default class MealsController {
   /**
    * Display a list of resource
    */
-  async today({ response }: HttpContext) {
+  async current({ response }: HttpContext) {
     try {
       const lastHash = await WebsiteHash.query().orderBy('createdAt', 'desc').first()
       if (!lastHash) {
