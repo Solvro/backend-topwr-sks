@@ -7,7 +7,7 @@ export default class MealsController {
   /**
    * Display a list of resource
    */
-  async index({ response }: HttpContext) {
+  async today({ response }: HttpContext) {
     try {
       const lastHash = await WebsiteHash.query().orderBy('createdAt', 'desc').first()
       if (!lastHash) {
@@ -40,7 +40,7 @@ export default class MealsController {
     }
   }
 
-  async history({ request, response }: HttpContext) {
+  async index({ request, response }: HttpContext) {
     try {
       const page = request.input('page', 1)
       const limit = request.input('limit', 10)
