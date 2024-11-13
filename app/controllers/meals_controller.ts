@@ -21,10 +21,10 @@ export default class MealsController {
           .orderBy('createdAt', 'desc')
           .offset(1)
           .first()
-        if (!secondLastHash) {
-          return response.status(200).json({ meals: [], isMenuOnline: false })
-        }
         isMenuOnline = false
+        if (!secondLastHash) {
+          return response.status(200).json({ meals: [], isMenuOnline })
+        }
         todayMeals = await getMealsByHash(secondLastHash.hash)
       }
 
@@ -34,7 +34,7 @@ export default class MealsController {
         size: singleMeal.size,
       }))
 
-      return response.status(200).json({ meals, isMenuOnline: isMenuOnline })
+      return response.status(200).json({ meals, isMenuOnline })
     } catch (error) {
       return response.status(500).json({ message: 'Failed to fetch meals', error: error.message })
     }
