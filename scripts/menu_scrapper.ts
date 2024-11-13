@@ -26,20 +26,18 @@ export async function runScrapper() {
 
     for (const meal of meals) {
       const newMeal = await checkIfMealExistsOrCreate(meal.name, meal.category)
-      if (newMeal === null) {
-        continue
+      if (newMeal !== null) {
+        await HashesMeal.create(
+          {
+            hashFk: newWebsiteHash.hash,
+            mealId: newMeal.id,
+            size: meal.size,
+            price: meal.price,
+          },
+          { client: trx }
+        )
+        logger.info(`Meal ${meal.name} added to the database as ${newWebsiteHash.hash} connection.`)
       }
-
-      await HashesMeal.create(
-        {
-          hashFk: newWebsiteHash.hash,
-          mealId: newMeal.id,
-          size: meal.size,
-          price: meal.price,
-        },
-        { client: trx }
-      )
-      logger.info(`Meal ${meal.name} added to the database as ${newWebsiteHash.hash} connection.`)
     }
     logger.info('Menu updated successfully.')
     await trx.commit()
