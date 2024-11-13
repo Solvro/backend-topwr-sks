@@ -36,7 +36,7 @@ export async function runScrapper() {
           },
           { client: trx }
         )
-        logger.info(`Meal ${meal.name} added to the database as ${newWebsiteHash.hash} connection.`)
+        logger.debug(`${meal.name} added as ${newWebsiteHash.hash} connection.`)
       }
     }
     logger.info('Menu updated successfully.')
@@ -118,14 +118,14 @@ async function checkIfMealExistsOrCreate(name: string, category: MealCategory | 
       mealQuery = mealQuery.whereNull('category')
     }
     const mealOrNull = await mealQuery.first()
-    logger.info(`Checking if meal ${name} exists in the database.`)
+    logger.debug(`Checking if meal ${name} exists in the database.`)
 
     if (mealOrNull !== null) {
-      logger.info(`Meal ${name} already exists in the database`)
+      logger.debug(`Meal ${name} already exists in the database`)
       return mealOrNull
     }
 
-    logger.info(`Meal ${name} does not exist in the database. Creating a new meal.`)
+    logger.debug(`Meal ${name} does not exist in the database. Creating a new meal.`)
     const newMeal = await Meal.create({ name, category }, { client: trx })
     trx.commit()
     return newMeal
