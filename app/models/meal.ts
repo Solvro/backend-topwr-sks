@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
-import { HasMany } from '@adonisjs/lucid/types/relations'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 import HashesMeal from './hashes_meal.js'
 
 export enum MealCategory {
