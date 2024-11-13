@@ -6,7 +6,7 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.bigIncrements('id').primary()
+      table.bigIncrements('id')
 
       table.text('name').notNullable()
       table.enum('category', Object.keys(MealCategory))
