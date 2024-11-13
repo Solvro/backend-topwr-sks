@@ -1,5 +1,4 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
-import { unique } from '@adonisjs/lucid/utils'
 
 export default class extends BaseSchema {
   protected tableName = 'hashes_meals'
