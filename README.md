@@ -5,16 +5,95 @@
 
 ## Description
 
-SKS Menu Scraper is a tool designed to automatically fetch and parse information about canteen menus, such as dish names, portion sizes, and prices. The project saves the scraped data into a database and provides a RESTful API for users to access menu items
+SKS Menu Scraper is a tool designed to automatically fetch and parse information about canteen menus, such as dish
+names, portion sizes, and prices. The project saves the scraped data into a database and provides a RESTful API for
+users to access menu items.
+
+The SKS Menu Scraper also includes a feature that acts as a wrapper for external API to handle and track the number of
+canteen users - [source](https://live.pwr.edu.pl/sks/).
 
 ## Endpoints
 
-The API is available at `api.topwr.solvro.pl`. The following endpoint is available (more coming soon):
+The API is available at `sks-api.topwr.solvro.pl`. The following endpoints are available at the moment:
 
-- **GET** `api/v1/meals`
-  - Retrieves a list of all menu items, including dish names, sizes, and prices.
-  - Note: If the SKS site does not display the menu, this endpoint returns an empty list.
-  - **Example**: `curl -X GET https://api.topwr.solvro.pl/api/v1/meals`
+- **GET** `/api/v1/meals`
+  - **Description**: Retrieves a list of all menu items, including dish names, sizes, and prices.
+  - **Note**: If the SKS site does not display the menu, this endpoint returns an empty list.
+  - **Request**:
+    ```bash
+    curl -X GET https://sks-api.topwr.solvro.pl/api/v1/meals
+    ```
+  - **Response**:
+    ```json
+    [
+      {
+        "id": 85,
+        "name": "Napój z soku jabłkowo-wiśniowego",
+        "category": "DRINK",
+        "size": "200ml",
+        "price": "2.50",
+        "createdAt": "2024-11-08T11:53:38.644+00:00",
+        "updatedAt": "2024-11-08T11:53:38.644+00:00"
+      },
+      {
+        "id": 84,
+        "name": "Ziemniaki z koperkiem",
+        "category": "SIDE_DISH",
+        "size": "250g",
+        "price": "4.50",
+        "createdAt": "2024-11-08T11:53:38.644+00:00",
+        "updatedAt": "2024-11-08T11:53:38.644+00:00"
+      },
+      {
+        "id": 82,
+        "name": "Pałki drobiowe w ciescie crazy",
+        "category": "MEAT_DISH",
+        "size": "250g",
+        "price": "15.00",
+        "createdAt": "2024-11-08T11:53:38.642+00:00",
+        "updatedAt": "2024-11-08T11:53:38.642+00:00"
+      }
+    ]
+    ```
+- **GET** `/api/v1/sks-users/current`
+  - **Description**: Retrieves the latest SKS user data with additional info about trend, whether the data is recent or
+    not, and timestamp for the next scheduled update.
+  - **Request**:
+    ```bash
+    curl -X GET https://sks-api.topwr.solvro.pl/api/v1/sks-users/current
+    ```
+  - **Response**:
+    ```json
+    {
+      "activeUsers": 1,
+      "movingAverage21": 49,
+      "externalTimestamp": "2024-11-11T13:40:00.000+00:00",
+      "createdAt": "2024-11-10T23:00:00.116+00:00",
+      "updatedAt": "2024-11-11T13:42:01.017+00:00",
+      "trend": "STABLE",
+      "isResultRecent": true,
+      "nextUpdateTimestamp": "2024-11-11T13:47:31.017+00:00"
+    }
+    ```
+- **GET** `/api/v1/sks-users/today`
+  - **Description**: Retrieves the today's data about SKS users count
+  - **Request**:
+    ```bash
+    curl -X GET https://sks-api.topwr.solvro.pl/api/v1/sks-users/today
+    ```
+  - **Response**:
+    ```json
+    [
+      {
+        "activeUsers": 1,
+        "movingAverage21": 49,
+        "externalTimestamp": "2024-11-11T13:40:00.000+00:00",
+        "createdAt": "2024-11-10T23:00:00.116+00:00",
+        "updatedAt": "2024-11-11T13:42:01.017+00:00"     
+      },
+      "{...}"
+    ]
+    ```
 
 ## Development
 
@@ -53,10 +132,11 @@ The API is available at `api.topwr.solvro.pl`. The following endpoint is availab
     node ace scheduler:work
    ```
 
-   Alternatively run scraping script once:
+   Alternatively run scraping script once and individually:
 
    ```bash
-   node ace scrape
+   node ace scrape:menu
+   node ace scrape:users
    ```
 
 7. Start the development server:
@@ -81,3 +161,4 @@ The API is available at `api.topwr.solvro.pl`. The following endpoint is availab
 ## Database Schema
 
 ![schema](./assets/schema.png)
+![schema2](./assets/schema2.png)

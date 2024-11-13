@@ -10,11 +10,11 @@ import HashesMeal from '#models/hashes_meal'
 const url = 'https://sks.pwr.edu.pl/menu/'
 
 export async function runScrapper() {
-  const currentHash = await cacheMenu()
-  const storedHash = await WebsiteHash.first()
-
   const trx = await db.transaction()
   try {
+    const currentHash = await cacheMenu()
+    const storedHash = await WebsiteHash.first()
+
     if (storedHash !== null && storedHash.hash === currentHash) {
       logger.info('Did not find any differences. Not proceeding with scraping.')
       await trx.rollback()
