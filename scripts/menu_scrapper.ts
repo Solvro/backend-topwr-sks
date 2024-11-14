@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import WebsiteHash from '#models/website_hash'
 import logger from '@adonisjs/core/services/logger'
+import HashesMeal from '#models/hashes_meal'
 
 const url = 'https://sks.pwr.edu.pl/menu/'
 
@@ -14,25 +15,32 @@ export async function runScrapper() {
     const currentHash = await cacheMenu()
     const storedHash = await WebsiteHash.first()
 
-    if (storedHash === null || storedHash.hash === '') {
-      logger.info('No hash found in database. Storing current hash and scraping menu.')
-      await WebsiteHash.create({ hash: currentHash }, { client: trx })
-    } else if (storedHash.hash === currentHash) {
+    if (storedHash !== null && storedHash.hash === currentHash) {
       logger.info('Did not find any differences. Not proceeding with scraping.')
       await trx.rollback()
       return
     }
 
+    const newWebsiteHash = await WebsiteHash.create({ hash: currentHash }, { client: trx })
     const meals = await scrapeMenu()
-    await Meal.query({ client: trx }).delete()
-    await Meal.createMany(meals, { client: trx })
 
-    if (storedHash) {
-      await storedHash.merge({ hash: currentHash }).save()
+    for (const meal of meals) {
+      const newMeal = await checkIfMealExistsOrCreate(meal.name, meal.category)
+      if (newMeal !== null) {
+        await HashesMeal.create(
+          {
+            hashFk: newWebsiteHash.hash,
+            mealId: newMeal.id,
+            size: meal.size,
+            price: meal.price,
+          },
+          { client: trx }
+        )
+        logger.debug(`${meal.name} added as ${newWebsiteHash.hash} connection.`)
+      }
     }
-
-    await trx.commit()
     logger.info('Menu updated successfully.')
+    await trx.commit()
   } catch (error) {
     await trx.rollback()
     logger.error(`Failed to update menu: ${error.message}`, error.stack)
@@ -96,5 +104,34 @@ function assignCategories(category: string) {
       return MealCategory.DRINK
     default:
       return null
+  }
+}
+
+async function checkIfMealExistsOrCreate(name: string, category: MealCategory | null) {
+  const trx = await db.transaction()
+  try {
+    let mealQuery = Meal.query().where('name', name)
+
+    if (category !== null) {
+      mealQuery = mealQuery.where('category', category)
+    } else {
+      mealQuery = mealQuery.whereNull('category')
+    }
+    const mealOrNull = await mealQuery.first()
+    logger.debug(`Checking if meal ${name} exists in the database.`)
+
+    if (mealOrNull !== null) {
+      logger.debug(`Meal ${name} already exists in the database`)
+      return mealOrNull
+    }
+
+    logger.debug(`Meal ${name} does not exist in the database. Creating a new meal.`)
+    const newMeal = await Meal.create({ name, category }, { client: trx })
+    trx.commit()
+    return newMeal
+  } catch (error) {
+    logger.error(`Failed to check or create meal ${name}: ${error.message}`, error.stack)
+    trx.rollback()
+    return null
   }
 }

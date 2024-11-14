@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
+import HashesMeal from './hashes_meal.js'
 
 export enum MealCategory {
   SALAD = 'SALAD',
@@ -21,15 +23,12 @@ export default class Meal extends BaseModel {
   @column()
   declare category: MealCategory | null
 
-  @column()
-  declare size: string | null
-
-  @column()
-  declare price: number
-
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  @hasMany(() => HashesMeal)
+  declare hashes: HasMany<typeof HashesMeal>
 }
