@@ -108,7 +108,6 @@ function assignCategories(category: string) {
 }
 
 async function checkIfMealExistsOrCreate(name: string, category: MealCategory | null) {
-  const trx = await db.transaction()
   try {
     let mealQuery = Meal.query().where('name', name)
 
@@ -126,12 +125,9 @@ async function checkIfMealExistsOrCreate(name: string, category: MealCategory | 
     }
 
     logger.debug(`Meal ${name} does not exist in the database. Creating a new meal.`)
-    const newMeal = await Meal.create({ name, category }, { client: trx })
-    trx.commit()
-    return newMeal
+    return await Meal.create({ name, category })
   } catch (error) {
     logger.error(`Failed to check or create meal ${name}: ${error.message}`, error.stack)
-    trx.rollback()
     return null
   }
 }
