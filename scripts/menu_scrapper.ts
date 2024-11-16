@@ -65,7 +65,7 @@ export async function scrapeMenu() {
           const nameMatch = itemText.match(/[\D\s]+/)
           const itemName = nameMatch ? nameMatch[0].trim() : itemText
 
-          const sizeMatch = itemText.match(/\d+(?:g|ml)?(?:\/\d+(?:g|ml)?)?/)
+          const sizeMatch = itemText.match(/\d+(?:g|ml)?(?:\/\d+(?:g|ml)?)?\s+(?=\d+(?=\.\d+)?)/)
           const itemSize = sizeMatch ? sizeMatch[0].trim() : null
 
           return {
