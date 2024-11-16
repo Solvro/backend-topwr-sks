@@ -7,7 +7,7 @@ import WebsiteHash from '#models/website_hash'
 import logger from '@adonisjs/core/services/logger'
 import HashesMeal from '#models/hashes_meal'
 
-const url = 'https://sks.pwr.edu.pl/menu/'
+export const url = 'https://sks.pwr.edu.pl/menu/'
 
 export async function runScrapper() {
   const trx = await db.transaction()
@@ -65,7 +65,7 @@ export async function scrapeMenu() {
           const nameMatch = itemText.match(/[\D\s]+/)
           const itemName = nameMatch ? nameMatch[0].trim() : itemText
 
-          const sizeMatch = itemText.match(/\d+(?:g|ml)(?:\/\d+(?:g|ml))?/)
+          const sizeMatch = itemText.match(/\d+(?:g|ml)?(?:\/\d+(?:g|ml)?)?/)
           const itemSize = sizeMatch ? sizeMatch[0].trim() : null
 
           return {
