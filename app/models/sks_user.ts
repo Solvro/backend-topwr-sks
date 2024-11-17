@@ -6,9 +6,11 @@ export default class SksUser extends BaseModel {
   declare externalTimestamp: DateTime
 
   @column()
+  // @example(21)
   declare activeUsers: number
 
   @column()
+  // @example(37)
   declare movingAverage21: number
 
   @column.dateTime({ autoCreate: true })

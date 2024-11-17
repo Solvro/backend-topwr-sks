@@ -1,0 +1,354 @@
+openapi: "3.0.0"
+info:
+  title: "SKS-Scrapper"
+  version: "1.0.0"
+  description: "The SKS Menu Scraper is a tool that automatically fetches and parses canteen menu data, including dish names, portion sizes, and prices, storing the information in a database. It also features a wrapper for tracking the number of canteen users, providing a comprehensive solution for managing both menu and user data through a RESTful API."
+components:
+  responses:
+    Forbidden:
+      description: "Access token is missing or invalid"
+    Accepted:
+      description: "The request was accepted"
+    Created:
+      description: "The resource has been created"
+    NotFound:
+      description: "The resource has been created"
+    NotAcceptable:
+      description: "The resource has been created"
+  securitySchemes:
+    BearerAuth:
+      type: "http"
+      scheme: "bearer"
+    BasicAuth:
+      type: "http"
+      scheme: "basic"
+    ApiKeyAuth:
+      type: "apiKey"
+      in: "header"
+      name: "X-API-Key"
+  schemas:
+    Any:
+      description: "Any JSON object not defined as schema"
+    PaginationMeta:
+      type: "object"
+      properties:
+        total:
+          type: "number"
+          example: 100
+          nullable: false
+        page:
+          type: "number"
+          example: 2
+          nullable: false
+        perPage:
+          type: "number"
+          example: 10
+          nullable: false
+        currentPage:
+          type: "number"
+          example: 3
+          nullable: false
+        lastPage:
+          type: "number"
+          example: 10
+          nullable: false
+        firstPage:
+          type: "number"
+          example: 1
+          nullable: false
+        lastPageUrl:
+          type: "string"
+          example: "/?page=10"
+          nullable: false
+        firstPageUrl:
+          type: "string"
+          example: "/?page=1"
+          nullable: false
+        nextPageUrl:
+          type: "string"
+          example: "/?page=6"
+          nullable: false
+        previousPageUrl:
+          type: "string"
+          example: "/?page=5"
+          nullable: false
+    HashesMeal:
+      type: "object"
+      required: [ ]
+      properties:
+        hash_fk:
+          type: "string"
+          example: "80845fe1a68deadbb4febc3f6dbae98b64a3df7a1648edd417a8ece3164182f4"
+        meal_id:
+          type: "number"
+          example: 874
+        size:
+          type: "string"
+          example: "200g/10g"
+        price:
+          type: "number"
+          example: 21
+        created_at:
+          type: "string"
+          example: "2021-03-23T16:13:08.489+01:00"
+          format: "date-time"
+      description: "HashesMeal (Model)"
+    Meal:
+      type: "object"
+      required: [ ]
+      properties:
+        id:
+          type: "number"
+          example: 337
+        name:
+          type: "string"
+          example: "Frytki z batatów"
+        category:
+          $ref: "#/components/schemas/MealCategory"
+          example: "SALAD, SOUP, VEGETARIAN_DISH, MEAT_DISH, DESSERT, SIDE_DISH, DRINK"
+        created_at:
+          type: "string"
+          example: "2021-03-23T16:13:08.489+01:00"
+          format: "date-time"
+        updated_at:
+          type: "string"
+          example: "2021-03-23T16:13:08.489+01:00"
+          format: "date-time"
+        hashes:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/HashesMeal"
+            example: null
+      description: "Meal (Model)"
+    SksUser:
+      type: "object"
+      required: [ ]
+      properties:
+        external_timestamp:
+          type: "string"
+          example: "2021-03-23T16:13:08.489+01:00"
+          format: "date-time"
+        active_users:
+          type: "number"
+          example: 21
+        moving_average_21:
+          type: "number"
+          example: 37
+        created_at:
+          type: "string"
+          example: "2021-03-23T16:13:08.489+01:00"
+          format: "date-time"
+        updated_at:
+          type: "string"
+          example: "2021-03-23T16:13:08.489+01:00"
+          format: "date-time"
+      description: "SksUser (Model)"
+    WebsiteHash:
+      type: "object"
+      required: [ ]
+      properties:
+        hash:
+          type: "string"
+          example: "80845fe1a68deadbb4febc3f6dbae98b64a3df7a1648edd417a8ece3164182f4"
+        created_at:
+          type: "string"
+          example: "2021-03-23T16:13:08.489+01:00"
+          format: "date-time"
+        updated_at:
+          type: "string"
+          example: "2021-03-23T16:13:08.489+01:00"
+          format: "date-time"
+        meals:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/HashesMeal"
+            example: null
+      description: "WebsiteHash (Model)"
+paths:
+  /api/v1/meals:
+    get:
+      summary: "Get paginated historical menus (index)"
+      description: "Returns **200** (OK) as **application/json**\n\n _app/controllers/meals_controller.ts_ - **index**"
+      parameters:
+        - in: "query"
+          name: "page"
+          description: "Page number for pagination"
+          schema:
+            example: ""
+            type: "integer"
+          required: false
+        - in: "query"
+          name: "limit"
+          description: "Number of records per page"
+          schema:
+            example: ""
+            type: "integer"
+          required: false
+      tags:
+        - "MEALS"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+              example:
+                - hash: "string"
+                  createdAt: "string"
+                  updatedAt: "string"
+                  meals:
+                    - id: "string"
+                      name: "string"
+                      description: "string"
+                      size: "string"
+                      price: "number"
+          description: "Returns **200** (OK) as **application/json**"
+        500:
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  message: "string"
+                  error: "string"
+              example:
+                message: "string"
+                error: "string"
+          description: "Returns **500** (Internal Server Error) as **application/json**"
+      security: [ ]
+  /api/v1/meals/current:
+    get:
+      summary: "Get current menu items and online status (current)"
+      description: "Returns **200** (OK) as **application/json**\n\n _app/controllers/meals_controller.ts_ - **current**"
+      parameters: [ ]
+      tags:
+        - "MEALS"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  meals:
+                    type: "object"
+                    properties:
+                      0:
+                        type: "object"
+                        properties:
+                          id: "string"
+                          name: "string"
+                          description: "string"
+                          size: "string"
+                          price: "number"
+                  isMenuOnline: "boolean"
+              example:
+                meals:
+                  - id: "string"
+                    name: "string"
+                    description: "string"
+                    size: "string"
+                    price: "number"
+                isMenuOnline: "boolean"
+          description: "Returns **200** (OK) as **application/json**"
+        500:
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  message: "string"
+                  error: "string"
+              example:
+                message: "string"
+                error: "string"
+          description: "Returns **500** (Internal Server Error) as **application/json**"
+      security: [ ]
+  /api/v1/sks-users/current:
+    get:
+      summary: "Display the latest SKS users record based on the current time (latest)"
+      description: "Returns **200** (OK) as **application/json**\n\n _app/controllers/sks_users_controller.ts_ - **latest**"
+      parameters: [ ]
+      tags:
+        - "SKS-USERS"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SksUser"
+              example:
+                external_timestamp: "2021-03-23T16:13:08.489+01:00"
+                active_users: 21
+                moving_average_21: 37
+                created_at: "2021-03-23T16:13:08.489+01:00"
+                updated_at: "2021-03-23T16:13:08.489+01:00"
+                trend: "INCREASING"
+                isResultRecent: true
+                nextUpdateTimestamp: "2024-11-11T18:12:30.962+00:00"
+          description: "Returns **200** (OK) as **application/json**"
+        404:
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  message: "Could not find the matching data in database"
+              example:
+                message: "Could not find the matching data in database"
+          description: "Returns **404** (Not Found) as **application/json**"
+        500:
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  message: "Failed to fetch the latest SKS user"
+                  error: "Some error message"
+              example:
+                message: "Failed to fetch the latest SKS user"
+                error: "Some error message"
+          description: "Returns **500** (Internal Server Error) as **application/json**"
+      security: [ ]
+  /api/v1/sks-users/today:
+    get:
+      summary: "Display all the SKS users data from today (today)"
+      description: "Returns **200** (OK) as **application/json**\n\n _app/controllers/sks_users_controller.ts_ - **today**"
+      parameters: [ ]
+      tags:
+        - "SKS-USERS"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/SksUser"
+              example:
+                - external_timestamp: "2021-03-23T16:13:08.489+01:00"
+                  active_users: 21
+                  moving_average_21: 37
+                  created_at: "2021-03-23T16:13:08.489+01:00"
+                  updated_at: "2021-03-23T16:13:08.489+01:00"
+          description: "Returns **200** (OK) as **application/json**"
+        500:
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  message: "Failed to fetch today's SKS users"
+                  error: "Some error message"
+              example:
+                message: "Failed to fetch today's SKS users"
+                error: "Some error message"
+          description: "Returns **500** (Internal Server Error) as **application/json**"
+      security: [ ]
+tags:
+  - name: "MEALS"
+    description: "Everything related to MEALS"
+  - name: "SKS-USERS"
+    description: "Everything related to SKS-USERS"

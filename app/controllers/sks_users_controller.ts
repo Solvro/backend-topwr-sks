@@ -13,7 +13,13 @@ enum Trend {
 
 export default class SksUsersController {
   /**
-   * Display the latest SKS users record based on time
+   * @latest
+   * @summary Display the latest SKS users record based on the current time
+   * @description Display the latest SKS users record based on the current time
+   * @responseBody 200 - <SksUser>.append("trend":"INCREASING","isResultRecent":true,"nextUpdateTimestamp": "2024-11-11T18:12:30.962+00:00")
+   * @responseBody 404 - {"message":"Could not find the matching data in database"}
+   * @responseBody 500 - {"message":"Failed to convert time to SQL format"}
+   * @responseBody 500 - {"message":"Failed to fetch the latest SKS user","error": "Some error message"}
    */
   async latest({ response }: HttpContext) {
     try {
@@ -66,7 +72,12 @@ export default class SksUsersController {
   }
 
   /**
-   * Display all SKS user records for the current day
+   * @today
+   * @summary Display all the SKS users data from today
+   * @description Display all the SKS users data from today
+   * @responseBody 200 - <SksUser[]>
+   * @responseBody 500 - {"message":"Failed to convert time to SQL format"}
+   * @responseBody 500 - {"message":"Failed to fetch today's SKS users","error": "Some error message"}
    */
   async today({ response }: HttpContext) {
     try {

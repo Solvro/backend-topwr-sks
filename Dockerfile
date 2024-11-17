@@ -25,6 +25,9 @@ FROM base
 ENV NODE_ENV=production
 WORKDIR /app
 
+# Copy docs
+COPY swagger.yml /app/swagger.yml
+
 # Copy production dependencies and build output
 COPY --from=production-deps /app/node_modules /app/node_modules
 COPY --from=build /app/build /app
