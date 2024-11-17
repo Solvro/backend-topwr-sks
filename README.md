@@ -17,43 +17,66 @@ canteen users - [source](https://live.pwr.edu.pl/sks/).
 The API is available at `sks-api.topwr.solvro.pl`. The following endpoints are available at the moment:
 
 - **GET** `/api/v1/meals`
-  - **Description**: Retrieves a list of all menu items, including dish names, sizes, and prices.
-  - **Note**: If the SKS site does not display the menu, this endpoint returns an empty list.
+  - **Description**: Retrieves list of last scraped menus.
   - **Request**:
     ```bash
     curl -X GET https://sks-api.topwr.solvro.pl/api/v1/meals
     ```
+  - **Params**:
+    - page (default: 1) - the page number of records to retrieve.
+    - limit (default: 10) - the number of records to return per page.
   - **Response**:
     ```json
     [
       {
-        "id": 85,
-        "name": "Napój z soku jabłkowo-wiśniowego",
-        "category": "DRINK",
-        "size": "200ml",
-        "price": "2.50",
-        "createdAt": "2024-11-08T11:53:38.644+00:00",
-        "updatedAt": "2024-11-08T11:53:38.644+00:00"
-      },
-      {
-        "id": 84,
-        "name": "Ziemniaki z koperkiem",
-        "category": "SIDE_DISH",
-        "size": "250g",
-        "price": "4.50",
-        "createdAt": "2024-11-08T11:53:38.644+00:00",
-        "updatedAt": "2024-11-08T11:53:38.644+00:00"
-      },
-      {
-        "id": 82,
-        "name": "Pałki drobiowe w ciescie crazy",
-        "category": "MEAT_DISH",
-        "size": "250g",
-        "price": "15.00",
-        "createdAt": "2024-11-08T11:53:38.642+00:00",
-        "updatedAt": "2024-11-08T11:53:38.642+00:00"
+        "hash": "75e5434015551ef3d22214a4438d1961f9f57e7c0d2a460917bfd4c8dd8b7dda",
+        "createdAt": "2024-11-15T12:10:00.545+00:00",
+        "updatedAt": "2024-11-15T12:10:00.545+00:00",
+        "meals": []
       }
     ]
+    ```
+- **GET** `/api/v1/meals/current`
+  - **Description**: Retrieves a list of all current or saved menu items (indicated by isMenuOnline field), including
+    dish names, sizes, and prices.
+  - **Request**:
+    ```bash
+    curl -X GET https://sks-api.topwr.solvro.pl/api/v1/meals/current
+    ```
+  - **Response**:
+    ```json
+    {
+      "meals": [
+        {
+          "id": 85,
+          "name": "Napój z soku jabłkowo-wiśniowego",
+          "category": "DRINK",
+          "size": "200ml",
+          "price": "2.50",
+          "createdAt": "2024-11-08T11:53:38.644+00:00",
+          "updatedAt": "2024-11-08T11:53:38.644+00:00"
+        },
+        {
+          "id": 84,
+          "name": "Ziemniaki z koperkiem",
+          "category": "SIDE_DISH",
+          "size": "250g",
+          "price": "4.50",
+          "createdAt": "2024-11-08T11:53:38.644+00:00",
+          "updatedAt": "2024-11-08T11:53:38.644+00:00"
+        },
+        {
+          "id": 82,
+          "name": "Pałki drobiowe w ciescie crazy",
+          "category": "MEAT_DISH",
+          "size": "250g",
+          "price": "15.00",
+          "createdAt": "2024-11-08T11:53:38.642+00:00",
+          "updatedAt": "2024-11-08T11:53:38.642+00:00"
+        }
+      ],
+      "isMenuOnline": true
+    }
     ```
 - **GET** `/api/v1/sks-users/current`
   - **Description**: Retrieves the latest SKS user data with additional info about trend, whether the data is recent or
@@ -89,7 +112,7 @@ The API is available at `sks-api.topwr.solvro.pl`. The following endpoints are a
         "movingAverage21": 49,
         "externalTimestamp": "2024-11-11T13:40:00.000+00:00",
         "createdAt": "2024-11-10T23:00:00.116+00:00",
-        "updatedAt": "2024-11-11T13:42:01.017+00:00"     
+        "updatedAt": "2024-11-11T13:42:01.017+00:00"
       },
       "{...}"
     ]
@@ -160,5 +183,4 @@ The API is available at `sks-api.topwr.solvro.pl`. The following endpoints are a
 
 ## Database Schema
 
-![schema](./assets/schema.png)
-![schema2](./assets/schema2.png)
+![schema](./assets/schema3.png)

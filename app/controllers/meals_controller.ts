@@ -74,8 +74,7 @@ export default class MealsController {
 
 async function getMealsByHash(hash: string) {
   try {
-    const hashesMeals = await HashesMeal.query().where('hashFk', hash).preload('meal')
-    return hashesMeals
+    return await HashesMeal.query().where('hashFk', hash).preload('meal')
   } catch (error) {
     logger.error(`Failed to fetch meals for hash ${hash}`, error)
     return []
