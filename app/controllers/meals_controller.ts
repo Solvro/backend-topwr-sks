@@ -5,11 +5,11 @@ import logger from '@adonisjs/core/services/logger'
 
 export default class MealsController {
   /**
-   * @index
-   * @summary Retrieves a list of all menu items.
-   * @description Retrieves a list of all menu items, including dish names, sizes, and prices.
-   * @responseBody 200 - <Meal[]>
-   * @responseBody 500 - {"message": "Failed to fetch meals", "error": "Some error message"}
+   * @current
+   * @summary Get current menu items and online status
+   * @description Retrieves the most recent menu items from the latest website scrape. If the latest scrape returned no meals, falls back to the previous scrape.
+   * @responseBody 200 - {"meals":[{"id":"string","name":"string","description":"string","size":"string","price":"number"}],"isMenuOnline":"boolean"}
+   * @responseBody 500 - {"message":"string","error":"string"}
    */
   async current({ response }: HttpContext) {
     try {
@@ -44,6 +44,15 @@ export default class MealsController {
     }
   }
 
+  /**
+   * @index
+   * @summary Get paginated historical menus
+   * @description Retrieves a paginated list of historical menus grouped by their scrape hash. Each group includes the menu items and metadata about when the scrape occurred.
+   * @paramQuery page - Page number for pagination - @type(integer) @minimum(1) @default(1)
+   * @paramQuery limit - Number of records per page - @type(integer) @minimum(1) @default(10)
+   * @responseBody 200 - [{"hash":"string","createdAt":"string","updatedAt":"string","meals":[{"id":"string","name":"string","description":"string","size":"string","price":"number"}]}]
+   * @responseBody 500 - {"message":"string","error":"string"}
+   */
   async index({ request, response }: HttpContext) {
     try {
       const page = request.input('page', 1)

@@ -103,32 +103,24 @@
         "properties": {
           "hash_fk": {
             "type": "string",
-            "example": "Lorem Ipsum"
+            "example": "80845fe1a68deadbb4febc3f6dbae98b64a3df7a1648edd417a8ece3164182f4"
           },
           "meal_id": {
             "type": "number",
-            "example": 998
+            "example": 874
           },
           "size": {
             "type": "string",
-            "example": "Lorem Ipsum"
+            "example": "200g/10g"
           },
           "price": {
             "type": "number",
-            "example": 10.5
+            "example": 21
           },
           "created_at": {
             "type": "string",
             "example": "2021-03-23T16:13:08.489+01:00",
             "format": "date-time"
-          },
-          "meal": {
-            "$ref": "#/components/schemas/Meal",
-            "example": null
-          },
-          "website_hash": {
-            "$ref": "#/components/schemas/WebsiteHash",
-            "example": null
           }
         },
         "description": "HashesMeal (Model)"
@@ -139,7 +131,7 @@
         "properties": {
           "id": {
             "type": "number",
-            "example": 268
+            "example": 337
           },
           "name": {
             "type": "string",
@@ -230,30 +222,32 @@
     }
   },
   "paths": {
-    "/api/v1/meals/current": {
-      "get": {
-        "summary": " (current)",
-        "description": "\n\n _app/controllers/meals_controller.ts_ - **current**",
-        "parameters": [],
-        "tags": [
-          "MEALS"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {}
-            }
-          }
-        },
-        "security": []
-      }
-    },
     "/api/v1/meals": {
       "get": {
-        "summary": "Retrieves a list of all menu items. (index)",
+        "summary": "Get paginated historical menus (index)",
         "description": "Returns **200** (OK) as **application/json**\n\n _app/controllers/meals_controller.ts_ - **index**",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "description": "Page number for pagination",
+            "schema": {
+              "example": "",
+              "type": "integer"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Number of records per page",
+            "schema": {
+              "example": "",
+              "type": "integer"
+            },
+            "required": false
+          }
+        ],
         "tags": [
           "MEALS"
         ],
@@ -264,16 +258,23 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Meal"
+                    "type": "object"
                   }
                 },
                 "example": [
                   {
-                    "id": 268,
-                    "name": "Frytki z batatów",
-                    "category": {},
-                    "created_at": "2021-03-23T16:13:08.489+01:00",
-                    "updated_at": "2021-03-23T16:13:08.489+01:00"
+                    "hash": "string",
+                    "createdAt": "string",
+                    "updatedAt": "string",
+                    "meals": [
+                      {
+                        "id": "string",
+                        "name": "string",
+                        "description": "string",
+                        "size": "string",
+                        "price": "number"
+                      }
+                    ]
                   }
                 ]
               }
@@ -286,13 +287,84 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": "Failed to fetch meals",
-                    "error": "Some error message"
+                    "message": "string",
+                    "error": "string"
                   }
                 },
                 "example": {
-                  "message": "Failed to fetch meals",
-                  "error": "Some error message"
+                  "message": "string",
+                  "error": "string"
+                }
+              }
+            },
+            "description": "Returns **500** (Internal Server Error) as **application/json**"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/meals/current": {
+      "get": {
+        "summary": "Get current menu items and online status (current)",
+        "description": "Returns **200** (OK) as **application/json**\n\n _app/controllers/meals_controller.ts_ - **current**",
+        "parameters": [],
+        "tags": [
+          "MEALS"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meals": {
+                      "type": "object",
+                      "properties": {
+                        "0": {
+                          "type": "object",
+                          "properties": {
+                            "id": "string",
+                            "name": "string",
+                            "description": "string",
+                            "size": "string",
+                            "price": "number"
+                          }
+                        }
+                      }
+                    },
+                    "isMenuOnline": "boolean"
+                  }
+                },
+                "example": {
+                  "meals": [
+                    {
+                      "id": "string",
+                      "name": "string",
+                      "description": "string",
+                      "size": "string",
+                      "price": "number"
+                    }
+                  ],
+                  "isMenuOnline": "boolean"
+                }
+              }
+            },
+            "description": "Returns **200** (OK) as **application/json**"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": "string",
+                    "error": "string"
+                  }
+                },
+                "example": {
+                  "message": "string",
+                  "error": "string"
                 }
               }
             },
@@ -417,91 +489,6 @@
               }
             },
             "description": "Returns **500** (Internal Server Error) as **application/json**"
-          }
-        },
-        "security": []
-      }
-    },
-    "/": {
-      "get": {
-        "summary": "route",
-        "description": "\n\n __ - ****",
-        "parameters": [],
-        "tags": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {}
-            }
-          }
-        },
-        "security": []
-      }
-    },
-    "/api": {
-      "get": {
-        "summary": "route",
-        "description": "\n\n __ - ****",
-        "parameters": [],
-        "tags": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {}
-            }
-          }
-        },
-        "security": []
-      }
-    },
-    "/api/v1": {
-      "get": {
-        "summary": "route",
-        "description": "\n\n __ - ****",
-        "parameters": [],
-        "tags": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {}
-            }
-          }
-        },
-        "security": []
-      }
-    },
-    "/api/docs": {
-      "get": {
-        "summary": "route",
-        "description": "\n\n __ - ****",
-        "parameters": [],
-        "tags": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {}
-            }
-          }
-        },
-        "security": []
-      }
-    },
-    "/docs": {
-      "get": {
-        "summary": "route",
-        "description": "\n\n __ - ****",
-        "parameters": [],
-        "tags": [],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {}
-            }
           }
         },
         "security": []
