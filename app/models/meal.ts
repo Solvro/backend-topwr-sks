@@ -11,6 +11,7 @@ export enum MealCategory {
   DESSERT = 'DESSERT',
   SIDE_DISH = 'SIDE_DISH',
   DRINK = 'DRINK',
+  TECHNICAL_INFO = 'TECHNICAL_INFO',
 }
 
 export default class Meal extends BaseModel {
@@ -23,7 +24,7 @@ export default class Meal extends BaseModel {
 
   @column()
   // I know it is made badly but unfortunately autoswagger does not support enums
-  // @example(SALAD, SOUP, VEGETARIAN_DISH, MEAT_DISH, DESSERT, SIDE_DISH, DRINK)
+  // @example(SALAD, SOUP, VEGETARIAN_DISH, MEAT_DISH, DESSERT, SIDE_DISH, DRINK, TECHNICAL_INFO)
   declare category: MealCategory | null
 
   @column.dateTime({ autoCreate: true })

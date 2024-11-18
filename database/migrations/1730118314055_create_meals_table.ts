@@ -9,7 +9,11 @@ export default class extends BaseSchema {
       table.bigIncrements('id')
 
       table.text('name').notNullable()
-      table.enum('category', Object.keys(MealCategory))
+      table.enum('category', Object.keys(MealCategory), {
+        useNative: true,
+        enumName: 'meal_category',
+        existingType: false,
+      })
 
       table.timestamp('created_at')
       table.timestamp('updated_at')
@@ -17,7 +21,7 @@ export default class extends BaseSchema {
   }
 
   async down() {
-    this.schema.raw('DROP TYPE IF EXISTS "type"')
     this.schema.dropTable(this.tableName)
+    this.schema.raw('DROP TYPE IF EXISTS "meal_category"')
   }
 }

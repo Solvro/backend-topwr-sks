@@ -81,7 +81,7 @@ components:
           example: "80845fe1a68deadbb4febc3f6dbae98b64a3df7a1648edd417a8ece3164182f4"
         meal_id:
           type: "number"
-          example: 874
+          example: 759
         size:
           type: "string"
           example: "200g/10g"
@@ -99,13 +99,13 @@ components:
       properties:
         id:
           type: "number"
-          example: 337
+          example: 158
         name:
           type: "string"
           example: "Frytki z batatów"
         category:
           $ref: "#/components/schemas/MealCategory"
-          example: "SALAD, SOUP, VEGETARIAN_DISH, MEAT_DISH, DESSERT, SIDE_DISH, DRINK"
+          example: "SALAD, SOUP, VEGETARIAN_DISH, MEAT_DISH, DESSERT, SIDE_DISH, DRINK, TECHNICAL_INFO"
         created_at:
           type: "string"
           example: "2021-03-23T16:13:08.489+01:00"

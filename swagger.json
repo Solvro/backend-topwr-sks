@@ -107,7 +107,7 @@
           },
           "meal_id": {
             "type": "number",
-            "example": 874
+            "example": 759
           },
           "size": {
             "type": "string",
@@ -131,7 +131,7 @@
         "properties": {
           "id": {
             "type": "number",
-            "example": 337
+            "example": 158
           },
           "name": {
             "type": "string",
@@ -139,7 +139,7 @@
           },
           "category": {
             "$ref": "#/components/schemas/MealCategory",
-            "example": "SALAD, SOUP, VEGETARIAN_DISH, MEAT_DISH, DESSERT, SIDE_DISH, DRINK"
+            "example": "SALAD, SOUP, VEGETARIAN_DISH, MEAT_DISH, DESSERT, SIDE_DISH, DRINK, TECHNICAL_INFO"
           },
           "created_at": {
             "type": "string",

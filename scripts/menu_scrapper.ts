@@ -25,6 +25,9 @@ export async function runScrapper() {
     const meals = await scrapeMenu()
 
     for (const meal of meals) {
+      if (meal.price === 0) {
+        meal.category = MealCategory.TECHNICAL_INFO
+      }
       const newMeal = await checkIfMealExistsOrCreate(meal.name, meal.category)
       if (newMeal !== null) {
         await HashesMeal.create(
