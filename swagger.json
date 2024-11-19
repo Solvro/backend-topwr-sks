@@ -107,7 +107,7 @@
           },
           "meal_id": {
             "type": "number",
-            "example": 759
+            "example": 116
           },
           "size": {
             "type": "string",
@@ -131,7 +131,7 @@
         "properties": {
           "id": {
             "type": "number",
-            "example": 158
+            "example": 967
           },
           "name": {
             "type": "string",
@@ -268,8 +268,11 @@
                     "updatedAt": "string",
                     "meals": [
                       {
-                        "id": "string",
+                        "id": "number",
                         "name": "string",
+                        "category": "SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO",
+                        "createdAt": "timestamp",
+                        "updatedAt": "timestamp",
                         "description": "string",
                         "size": "string",
                         "price": "number"
@@ -324,8 +327,11 @@
                         "0": {
                           "type": "object",
                           "properties": {
-                            "id": "string",
+                            "id": "number",
                             "name": "string",
+                            "category": "SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO",
+                            "createdAt": "timestamp",
+                            "updatedAt": "timestamp",
                             "description": "string",
                             "size": "string",
                             "price": "number"
@@ -339,8 +345,11 @@
                 "example": {
                   "meals": [
                     {
-                      "id": "string",
+                      "id": "number",
                       "name": "string",
+                      "category": "SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO",
+                      "createdAt": "timestamp",
+                      "updatedAt": "timestamp",
                       "description": "string",
                       "size": "string",
                       "price": "number"

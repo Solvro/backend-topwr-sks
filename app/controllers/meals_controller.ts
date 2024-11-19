@@ -8,7 +8,7 @@ export default class MealsController {
    * @current
    * @summary Get current menu items and online status
    * @description Retrieves the most recent menu items from the latest website scrape. If the latest scrape returned no meals, falls back to the previous scrape.
-   * @responseBody 200 - {"meals":[{"id":"string","name":"string","description":"string","size":"string","price":"number"}],"isMenuOnline":"boolean"}
+   * @responseBody 200 - {"meals":[{"id":"number","name":"string","category":"SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO","createdAt":"timestamp","updatedAt":"timestamp","description":"string","size":"string","price":"number"}],"isMenuOnline":"boolean"}
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async current({ response }: HttpContext) {
@@ -50,7 +50,7 @@ export default class MealsController {
    * @description Retrieves a paginated list of historical menus grouped by their scrape hash. Each group includes the menu items and metadata about when the scrape occurred.
    * @paramQuery page - Page number for pagination - @type(integer) @minimum(1) @default(1)
    * @paramQuery limit - Number of records per page - @type(integer) @minimum(1) @default(10)
-   * @responseBody 200 - [{"hash":"string","createdAt":"string","updatedAt":"string","meals":[{"id":"string","name":"string","description":"string","size":"string","price":"number"}]}]
+   * @responseBody 200 - [{"hash":"string","createdAt":"string","updatedAt":"string","meals":[{"id":"number","name":"string","category":"SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO","createdAt":"timestamp","updatedAt":"timestamp","description":"string","size":"string","price":"number"}]}]
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async index({ request, response }: HttpContext) {
