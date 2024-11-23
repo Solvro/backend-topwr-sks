@@ -21,6 +21,11 @@ export async function runScrapper() {
       return
     }
 
+    if (WebsiteHash.query().where('hash', currentHash).first() !== null) {
+      logger.info('Hash already exists in the database. Not proceeding with scraping.')
+      await trx.rollback()
+      return
+    }
     const newWebsiteHash = await WebsiteHash.create({ hash: currentHash }, { client: trx })
     const meals = await scrapeMenu()
 
