@@ -19,7 +19,6 @@ export default class MealsController {
       }
       let isMenuOnline = true
       let todayMeals = await getMealsByHash(lastHash.hash)
-      logger.warn(todayMeals)
 
       if (todayMeals.length === 0) {
         const secondLastHash = await WebsiteHash.query()
