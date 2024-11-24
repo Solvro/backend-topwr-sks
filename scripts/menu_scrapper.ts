@@ -22,6 +22,7 @@ export async function runScrapper() {
       await trx.commit()
       return
     }
+
     const newWebsiteHash = await WebsiteHash.create({ hash: currentHash }, { client: trx })
     const meals = await scrapeMenu()
 
