@@ -6,6 +6,7 @@ import db from '@adonisjs/lucid/services/db'
 import WebsiteHash from '#models/website_hash'
 import logger from '@adonisjs/core/services/logger'
 import HashesMeal from '#models/hashes_meal'
+import { DateTime } from 'luxon'
 
 export const url = 'https://sks.pwr.edu.pl/menu/'
 
@@ -16,8 +17,9 @@ export async function runScrapper() {
     const storedHash = await WebsiteHash.first()
 
     if (storedHash !== null && storedHash.hash === currentHash) {
+      await storedHash.merge({ updatedAt: DateTime.local() }).save()
       logger.info('Did not find any differences. Not proceeding with scraping.')
-      await trx.rollback()
+      await trx.commit()
       return
     }
 

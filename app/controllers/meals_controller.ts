@@ -13,7 +13,7 @@ export default class MealsController {
    */
   async current({ response }: HttpContext) {
     try {
-      const lastHash = await WebsiteHash.query().orderBy('createdAt', 'desc').first()
+      const lastHash = await WebsiteHash.query().orderBy('updatedAt', 'desc').first()
       if (!lastHash) {
         return response.status(200).json({ meals: [], isMenuOnline: false })
       }
@@ -22,7 +22,7 @@ export default class MealsController {
 
       if (todayMeals.length === 0) {
         const secondLastHash = await WebsiteHash.query()
-          .orderBy('createdAt', 'desc')
+          .orderBy('updatedAt', 'desc')
           .offset(1)
           .first()
         isMenuOnline = false
