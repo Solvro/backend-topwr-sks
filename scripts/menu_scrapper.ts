@@ -14,11 +14,11 @@ export async function runScrapper() {
   const trx = await db.transaction()
   try {
     const currentHash = await cacheMenu()
-    const lastUpdatedHash = await WebsiteHash.query().orderBy('updatedAt', 'desc').first()
+    const storedHash = await WebsiteHash.query().where('hash', currentHash).first()
 
-    if (lastUpdatedHash !== null && lastUpdatedHash.hash === currentHash) {
-      await lastUpdatedHash.merge({ updatedAt: DateTime.local() }).save()
-      logger.info('Did not find any differences. Not proceeding with scraping.')
+    if (storedHash !== null) {
+      await storedHash.merge({ updatedAt: DateTime.local() }).save()
+      logger.info('Hash already exists in the database. Not proceeding with scraping.')
       await trx.commit()
       return
     }
