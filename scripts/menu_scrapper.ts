@@ -6,6 +6,7 @@ import db from '@adonisjs/lucid/services/db'
 import WebsiteHash from '#models/website_hash'
 import logger from '@adonisjs/core/services/logger'
 import HashesMeal from '#models/hashes_meal'
+import { DateTime } from 'luxon'
 
 export const url = 'https://sks.pwr.edu.pl/menu/'
 
@@ -13,19 +14,15 @@ export async function runScrapper() {
   const trx = await db.transaction()
   try {
     const currentHash = await cacheMenu()
-    const storedHash = await WebsiteHash.first()
+    const lastUpdatedHash = await WebsiteHash.query().orderBy('updatedAt', 'desc').first()
 
-    if (storedHash !== null && storedHash.hash === currentHash) {
+    if (lastUpdatedHash !== null && lastUpdatedHash.hash === currentHash) {
+      await lastUpdatedHash.merge({ updatedAt: DateTime.local() }).save()
       logger.info('Did not find any differences. Not proceeding with scraping.')
-      await trx.rollback()
+      await trx.commit()
       return
     }
 
-    if ((await WebsiteHash.query().where('hash', currentHash).first()) !== null) {
-      logger.info('Hash already exists in the database. Not proceeding with scraping.')
-      await trx.rollback()
-      return
-    }
     const newWebsiteHash = await WebsiteHash.create({ hash: currentHash }, { client: trx })
     const meals = await scrapeMenu()
 
