@@ -81,7 +81,7 @@ components:
           example: "80845fe1a68deadbb4febc3f6dbae98b64a3df7a1648edd417a8ece3164182f4"
         meal_id:
           type: "number"
-          example: 116
+          example: 502
         size:
           type: "string"
           example: "200g/10g"
@@ -99,7 +99,7 @@ components:
       properties:
         id:
           type: "number"
-          example: 967
+          example: 715
         name:
           type: "string"
           example: "Frytki z batatów"
@@ -250,6 +250,7 @@ paths:
                           size: "string"
                           price: "number"
                   isMenuOnline: "boolean"
+                  lastUpdate: "timestamp"
               example:
                 meals:
                   - id: "number"
@@ -261,6 +262,7 @@ paths:
                     size: "string"
                     price: "number"
                 isMenuOnline: "boolean"
+                lastUpdate: "timestamp"
           description: "Returns **200** (OK) as **application/json**"
         500:
           content:

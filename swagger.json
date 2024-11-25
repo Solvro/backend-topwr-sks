@@ -107,7 +107,7 @@
           },
           "meal_id": {
             "type": "number",
-            "example": 116
+            "example": 502
           },
           "size": {
             "type": "string",
@@ -131,7 +131,7 @@
         "properties": {
           "id": {
             "type": "number",
-            "example": 967
+            "example": 715
           },
           "name": {
             "type": "string",
@@ -339,7 +339,8 @@
                         }
                       }
                     },
-                    "isMenuOnline": "boolean"
+                    "isMenuOnline": "boolean",
+                    "lastUpdate": "timestamp"
                   }
                 },
                 "example": {
@@ -355,7 +356,8 @@
                       "price": "number"
                     }
                   ],
-                  "isMenuOnline": "boolean"
+                  "isMenuOnline": "boolean",
+                  "lastUpdate": "timestamp"
                 }
               }
             },

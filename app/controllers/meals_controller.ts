@@ -2,20 +2,23 @@ import HashesMeal from '#models/hashes_meal'
 import WebsiteHash from '#models/website_hash'
 import type { HttpContext } from '@adonisjs/core/http'
 import logger from '@adonisjs/core/services/logger'
+import { DateTime } from 'luxon'
 
 export default class MealsController {
   /**
    * @current
    * @summary Get current menu items and online status
    * @description Retrieves the most recent menu items from the latest website scrape. If the latest scrape returned no meals, falls back to the previous scrape.
-   * @responseBody 200 - {"meals":[{"id":"number","name":"string","category":"SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO","createdAt":"timestamp","updatedAt":"timestamp","description":"string","size":"string","price":"number"}],"isMenuOnline":"boolean"}
+   * @responseBody 200 - {"meals":[{"id":"number","name":"string","category":"SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO","createdAt":"timestamp","updatedAt":"timestamp","description":"string","size":"string","price":"number"}],"isMenuOnline":"boolean","lastUpdate":"timestamp"}
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async current({ response }: HttpContext) {
     try {
       const lastHash = await WebsiteHash.query().orderBy('updatedAt', 'desc').first()
       if (!lastHash) {
-        return response.status(200).json({ meals: [], isMenuOnline: false })
+        return response
+          .status(200)
+          .json({ meals: [], isMenuOnline: false, lastUpdate: DateTime.now() })
       }
       let isMenuOnline = true
       let todayMeals = await getMealsByHash(lastHash.hash)
@@ -27,7 +30,9 @@ export default class MealsController {
           .first()
         isMenuOnline = false
         if (!secondLastHash) {
-          return response.status(200).json({ meals: [], isMenuOnline })
+          return response
+            .status(200)
+            .json({ meals: [], isMenuOnline, lastUpdate: lastHash.updatedAt })
         }
         todayMeals = await getMealsByHash(secondLastHash.hash)
       }
@@ -38,7 +43,7 @@ export default class MealsController {
         size: singleMeal.size,
       }))
 
-      return response.status(200).json({ meals, isMenuOnline })
+      return response.status(200).json({ meals, isMenuOnline, lastUpdate: lastHash.updatedAt })
     } catch (error) {
       return response.status(500).json({ message: 'Failed to fetch meals', error: error.message })
     }
