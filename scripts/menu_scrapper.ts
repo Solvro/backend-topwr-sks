@@ -17,7 +17,7 @@ export async function runScrapper() {
     const storedHash = await WebsiteHash.query().where('hash', currentHash).first()
 
     if (storedHash !== null) {
-      await storedHash.merge({ updatedAt: DateTime.local() }).save()
+      await storedHash.merge({ updatedAt: DateTime.now() }).save()
       logger.info('Hash already exists in the database. Not proceeding with scraping.')
       await trx.commit()
       return
