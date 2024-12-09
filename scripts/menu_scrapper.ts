@@ -73,7 +73,7 @@ export async function scrapeMenu() {
           const sizeMatch = itemText.match(
             /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?\s+(?=\d+(?=\.\d+)?)/
           )
-          const itemSize = sizeMatch ? sizeMatch[0].trim() : null
+          const itemSize = sizeMatch ? sizeMatch[0].trim().replace(' ', '') : '-'
 
           return {
             name: itemName,
@@ -110,7 +110,7 @@ function assignCategories(category: string) {
     case 'kompoty i napoje':
       return MealCategory.DRINK
     default:
-      return null
+      return MealCategory.TECHNICAL_INFO
   }
 }
 
