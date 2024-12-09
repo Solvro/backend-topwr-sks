@@ -70,8 +70,10 @@ export async function scrapeMenu() {
           const nameMatch = itemText.match(/[\D\s]+/)
           const itemName = nameMatch ? nameMatch[0].trim() : itemText
 
-          const sizeMatch = itemText.match(/\d+(?:g|ml)?(?:\/\d+(?:g|ml)?)?\s+(?=\d+(?=\.\d+)?)/)
-          const itemSize = sizeMatch ? sizeMatch[0].trim() : null
+          const sizeMatch = itemText.match(
+            /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?\s+(?=\d+(?=\.\d+)?)/
+          )
+          const itemSize = sizeMatch ? sizeMatch[0].trim().replace(' ', '') : '-'
 
           return {
             name: itemName,
@@ -108,7 +110,7 @@ function assignCategories(category: string) {
     case 'kompoty i napoje':
       return MealCategory.DRINK
     default:
-      return null
+      return MealCategory.TECHNICAL_INFO
   }
 }
 
