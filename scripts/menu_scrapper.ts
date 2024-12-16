@@ -1,6 +1,8 @@
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { DateTime } from "luxon";
+import assert from "node:assert";
 import { createHash } from "node:crypto";
 
 import logger from "@adonisjs/core/services/logger";
@@ -37,7 +39,7 @@ export async function runScrapper() {
 
     for (const meal of meals) {
       if (meal.price === 0) {
-        meal.category = MealCategory.TECHNICAL_INFO;
+        meal.category = MealCategory.TechnicalInfo;
       }
       const newMeal = await checkIfMealExistsOrCreate(meal.name, meal.category);
       if (newMeal !== null) {
@@ -58,13 +60,14 @@ export async function runScrapper() {
     logger.info("Menu updated successfully.");
     await trx.commit();
   } catch (error) {
+    assert(error instanceof Error);
     await trx.rollback();
     logger.error(`Failed to update menu: ${error.message}`, error.stack);
   }
 }
 
 export async function scrapeMenu() {
-  const response = await axios.get(url);
+  const response = await axios.get<string>(url);
   const $ = cheerio.load(response.data);
 
   return $(".category")
@@ -79,15 +82,14 @@ export async function scrapeMenu() {
           const priceNumeric = Number.parseFloat(price);
 
           const nameMatch = /[\D\s]+/.exec(itemText);
-          const itemName = nameMatch ? nameMatch[0].trim() : itemText;
+          const itemName = nameMatch !== null ? nameMatch[0].trim() : itemText;
 
           const sizeMatch =
             /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?\s+(?=\d+(?=\.\d+)?)/.exec(
               itemText,
             );
-          const itemSize = sizeMatch
-            ? sizeMatch[0].trim().replace(" ", "")
-            : "-";
+          const itemSize =
+            sizeMatch !== null ? sizeMatch[0].trim().replace(" ", "") : "-";
 
           return {
             name: itemName,
@@ -103,28 +105,28 @@ export async function scrapeMenu() {
 }
 
 export async function cacheMenu() {
-  const response = await axios.get(url);
+  const response = await axios.get<string>(url);
   return createHash("sha256").update(response.data).digest("hex");
 }
 
 function assignCategories(category: string) {
   switch (category.toLowerCase()) {
     case "surówki":
-      return MealCategory.SALAD;
+      return MealCategory.Salad;
     case "zupy":
-      return MealCategory.SOUP;
+      return MealCategory.Soup;
     case "dania jarskie":
-      return MealCategory.VEGETARIAN_DISH;
+      return MealCategory.VegetarianDish;
     case "dania mięsne":
-      return MealCategory.MEAT_DISH;
+      return MealCategory.MeatDish;
     case "dodatki":
-      return MealCategory.SIDE_DISH;
+      return MealCategory.SideDish;
     case "desery":
-      return MealCategory.DESSERT;
+      return MealCategory.Dessert;
     case "kompoty i napoje":
-      return MealCategory.DRINK;
+      return MealCategory.Drink;
     default:
-      return MealCategory.TECHNICAL_INFO;
+      return MealCategory.TechnicalInfo;
   }
 }
 
@@ -153,6 +155,7 @@ async function checkIfMealExistsOrCreate(
     );
     return await Meal.create({ name, category });
   } catch (error) {
+    assert(error instanceof Error);
     logger.error(
       `Failed to check or create meal ${name}: ${error.message}`,
       error.stack,

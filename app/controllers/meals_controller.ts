@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import assert from "node:assert";
 
 import type { HttpContext } from "@adonisjs/core/http";
 import logger from "@adonisjs/core/services/logger";
@@ -19,7 +20,7 @@ export default class MealsController {
       const lastHash = await WebsiteHash.query()
         .orderBy("updatedAt", "desc")
         .first();
-      if (!lastHash) {
+      if (lastHash === null) {
         return response
           .status(200)
           .json({ meals: [], isMenuOnline: false, lastUpdate: DateTime.now() });
@@ -33,7 +34,7 @@ export default class MealsController {
           .offset(1)
           .first();
         isMenuOnline = false;
-        if (!secondLastHash) {
+        if (secondLastHash === null) {
           return response
             .status(200)
             .json({ meals: [], isMenuOnline, lastUpdate: lastHash.updatedAt });
@@ -51,6 +52,7 @@ export default class MealsController {
         .status(200)
         .json({ meals, isMenuOnline, lastUpdate: lastHash.updatedAt });
     } catch (error) {
+      assert(error instanceof Error);
       return response
         .status(500)
         .json({ message: "Failed to fetch meals", error: error.message });
@@ -68,8 +70,8 @@ export default class MealsController {
    */
   async index({ request, response }: HttpContext) {
     try {
-      const page = request.input("page", 1);
-      const limit = request.input("limit", 10);
+      const page = request.input("page", 1) as number;
+      const limit = request.input("limit", 10) as number;
 
       const hashes = await HashesMeal.query()
         .distinct("hashFk")
@@ -93,6 +95,7 @@ export default class MealsController {
 
       return response.status(200).json(meals);
     } catch (error) {
+      assert(error instanceof Error);
       return response
         .status(500)
         .json({ message: "Failed to fetch meals", error: error.message });

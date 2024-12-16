@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import assert from "node:assert";
 
 import logger from "@adonisjs/core/services/logger";
 import db from "@adonisjs/lucid/services/db";
@@ -56,6 +57,7 @@ export async function runScrapper() {
     await db.rawQuery(query, parameters);
     logger.info(`SKS users data updated successfully.`);
   } catch (error) {
+    assert(error instanceof Error);
     logger.error(
       `Failed to update sks_users data: ${error.message}`,
       error.stack,

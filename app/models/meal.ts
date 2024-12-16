@@ -6,14 +6,14 @@ import type { HasMany } from "@adonisjs/lucid/types/relations";
 import HashesMeal from "./hashes_meal.js";
 
 export enum MealCategory {
-  SALAD = "SALAD",
-  SOUP = "SOUP",
-  VEGETARIAN_DISH = "VEGETARIAN_DISH",
-  MEAT_DISH = "MEAT_DISH",
-  DESSERT = "DESSERT",
-  SIDE_DISH = "SIDE_DISH",
-  DRINK = "DRINK",
-  TECHNICAL_INFO = "TECHNICAL_INFO",
+  Salad = "SALAD",
+  Soup = "SOUP",
+  VegetarianDish = "VEGETARIAN_DISH",
+  MeatDish = "MEAT_DISH",
+  Dessert = "DESSERT",
+  SideDish = "SIDE_DISH",
+  Drink = "DRINK",
+  TechnicalInfo = "TECHNICAL_INFO",
 }
 
 export default class Meal extends BaseModel {

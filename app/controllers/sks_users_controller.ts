@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import assert from "node:assert";
 
 import { HttpContext } from "@adonisjs/core/http";
 
@@ -55,7 +56,6 @@ export default class SksUsersController {
       }
 
       const referenceTime = entryToReturn.externalTimestamp.toSQL();
-      console.log(referenceTime);
       if (referenceTime === null) {
         return response.status(500).json({
           message: "Failed to convert external timestamp to SQL format",
@@ -79,6 +79,7 @@ export default class SksUsersController {
         nextUpdateTimestamp,
       });
     } catch (error) {
+      assert(error instanceof Error);
       return response.status(500).json({
         message: "Failed to fetch the latest SKS user",
         error: error.message,
@@ -116,6 +117,7 @@ export default class SksUsersController {
 
       return response.status(200).json(todayData);
     } catch (error) {
+      assert(error instanceof Error);
       return response.status(500).json({
         message: "Failed to fetch today's SKS users",
         error: error.message,
