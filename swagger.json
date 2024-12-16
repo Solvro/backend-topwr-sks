@@ -248,9 +248,7 @@
             "required": false
           }
         ],
-        "tags": [
-          "MEALS"
-        ],
+        "tags": ["MEALS"],
         "responses": {
           "200": {
             "content": {
@@ -311,9 +309,7 @@
         "summary": "Get current menu items and online status (current)",
         "description": "Returns **200** (OK) as **application/json**\n\n _app/controllers/meals_controller.ts_ - **current**",
         "parameters": [],
-        "tags": [
-          "MEALS"
-        ],
+        "tags": ["MEALS"],
         "responses": {
           "200": {
             "content": {
@@ -390,9 +386,7 @@
         "summary": "Display the latest SKS users record based on the current time (latest)",
         "description": "Returns **200** (OK) as **application/json**\n\n _app/controllers/sks_users_controller.ts_ - **latest**",
         "parameters": [],
-        "tags": [
-          "SKS-USERS"
-        ],
+        "tags": ["SKS-USERS"],
         "responses": {
           "200": {
             "content": {
@@ -457,9 +451,7 @@
         "summary": "Display all the SKS users data from today (today)",
         "description": "Returns **200** (OK) as **application/json**\n\n _app/controllers/sks_users_controller.ts_ - **today**",
         "parameters": [],
-        "tags": [
-          "SKS-USERS"
-        ],
+        "tags": ["SKS-USERS"],
         "responses": {
           "200": {
             "content": {

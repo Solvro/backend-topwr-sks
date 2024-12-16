@@ -1,20 +1,22 @@
-import scheduler from 'adonisjs-scheduler/services/main'
-import { runScrapper as runMenuScrapper } from '../scripts/menu_scrapper.js'
-import { runScrapper as runUsersScrapper } from '../scripts/users_scrapper.js'
-import logger from '@adonisjs/core/services/logger'
+import scheduler from "adonisjs-scheduler/services/main";
+
+import logger from "@adonisjs/core/services/logger";
+
+import { runScrapper as runMenuScrapper } from "../scripts/menu_scrapper.js";
+import { runScrapper as runUsersScrapper } from "../scripts/users_scrapper.js";
 
 scheduler
   .call(() => {
-    logger.info('Running menu scraper.')
-    void runMenuScrapper()
+    logger.info("Running menu scraper.");
+    void runMenuScrapper();
   })
   .immediate()
-  .everyFiveMinutes()
+  .everyFiveMinutes();
 
 scheduler
   .call(() => {
-    logger.info('Running users scraper.')
-    void runUsersScrapper()
+    logger.info("Running users scraper.");
+    void runUsersScrapper();
   })
   .immediate()
-  .everyMinute()
+  .everyMinute();
