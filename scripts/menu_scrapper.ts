@@ -1,5 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-restricted-imports
-import axios from "axios";
 import * as cheerio from "cheerio";
 import { DateTime } from "luxon";
 import assert from "node:assert";
@@ -67,8 +65,9 @@ export async function runScrapper() {
 }
 
 export async function scrapeMenu() {
-  const response = await axios.get<string>(url);
-  const $ = cheerio.load(response.data);
+  const response = await fetch(url);
+  const data = await response.text();
+  const $ = cheerio.load(data);
 
   return $(".category")
     .map((_, category) => {
@@ -105,8 +104,10 @@ export async function scrapeMenu() {
 }
 
 export async function cacheMenu() {
-  const response = await axios.get<string>(url);
-  return createHash("sha256").update(response.data).digest("hex");
+  const response = await fetch(url);
+  const data = await response.text();
+  console.log(data);
+  return createHash("sha256").update(data).digest("hex");
 }
 
 function assignCategories(category: string) {
