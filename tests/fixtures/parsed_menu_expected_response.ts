@@ -37,7 +37,7 @@ export const expectedResponse = [
   },
   {
     name: "Ryż biały na sypko",
-    size: null,
+    size: "-",
     price: 4,
     category: "SIDE_DISH",
   },
