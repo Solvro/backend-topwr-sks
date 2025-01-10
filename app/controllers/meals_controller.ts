@@ -20,6 +20,7 @@ export default class MealsController {
       const lastHash = await WebsiteHash.query()
         .orderBy("updatedAt", "desc")
         .first();
+      //this case is kinda weird now, but it is very rare
       if (lastHash === null) {
         return response
           .status(200)

@@ -14,6 +14,10 @@ export const url = "https://sks.pwr.edu.pl/menu/";
 
 export async function runScrapper() {
   const trx = await db.transaction();
+  const response = await fetch(url);
+  const data = await response.text();
+  const $ = cheerio.load(data);
+
   try {
     const currentHash = await cacheMenu();
     const storedHash = await WebsiteHash.query()
@@ -21,7 +25,9 @@ export async function runScrapper() {
       .first();
 
     if (storedHash !== null) {
-      await storedHash.merge({ updatedAt: DateTime.now() }).save();
+      if ($("#menu_table").text().trim() === "") {
+        await storedHash.merge({ updatedAt: DateTime.now() }).save();
+      }
       logger.info(
         "Hash already exists in the database. Not proceeding with scraping.",
       );
@@ -33,7 +39,7 @@ export async function runScrapper() {
       { hash: currentHash },
       { client: trx },
     );
-    const meals = await scrapeMenu();
+    const meals = await scrapeMenu(data);
 
     for (const meal of meals) {
       if (meal.price === 0) {
@@ -64,10 +70,8 @@ export async function runScrapper() {
   }
 }
 
-export async function scrapeMenu() {
-  const response = await fetch(url);
-  const data = await response.text();
-  const $ = cheerio.load(data);
+export async function scrapeMenu(html: string) {
+  const $ = cheerio.load(html);
 
   return $(".category")
     .map((_, category) => {
@@ -106,7 +110,6 @@ export async function scrapeMenu() {
 export async function cacheMenu() {
   const response = await fetch(url);
   const data = await response.text();
-  console.log(data);
   return createHash("sha256").update(data).digest("hex");
 }
 
