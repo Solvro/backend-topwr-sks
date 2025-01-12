@@ -25,7 +25,7 @@ export async function runScrapper() {
       .first();
 
     if (storedHash !== null) {
-      if ($("#menu_table").text().trim() === "") {
+      if ($("#menu_table").text().trim() !== "") {
         await storedHash.merge({ updatedAt: DateTime.now() }).save();
       }
       logger.info(
