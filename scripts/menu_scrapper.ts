@@ -106,7 +106,6 @@ export async function scrapeMenu() {
 export async function cacheMenu() {
   const response = await fetch(url);
   const data = await response.text();
-  console.log(data);
   return createHash("sha256").update(data).digest("hex");
 }
 

@@ -74,9 +74,8 @@ export default class MealsController {
       const limit = request.input("limit", 10) as number;
 
       const hashes = await HashesMeal.query()
-        .distinct("hashFk")
+        .orderBy("createdAt", "desc")
         .preload("websiteHash")
-        .orderBy("updatedAt", "desc")
         .paginate(page, limit);
 
       const meals = await Promise.all(
