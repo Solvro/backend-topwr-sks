@@ -76,6 +76,7 @@ export default class MealsController {
       const hashes = await HashesMeal.query()
         .distinct("hashFk")
         .preload("websiteHash")
+        .orderBy("updatedAt", "desc")
         .paginate(page, limit);
 
       const meals = await Promise.all(
