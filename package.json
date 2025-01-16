@@ -28,7 +28,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "start": "node bin/server.js",
     "test": "node ace test",
     "typecheck": "tsc --noEmit"
