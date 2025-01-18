@@ -16,7 +16,6 @@ export async function runScrapper() {
   const trx = await db.transaction();
   const response = await fetch(url);
   const data = await response.text();
-  const $ = cheerio.load(data);
 
   try {
     const currentHash = await cacheMenu();
@@ -25,9 +24,7 @@ export async function runScrapper() {
       .first();
 
     if (storedHash !== null) {
-      if ($("#menu_table").text().trim() !== "") {
-        await storedHash.merge({ updatedAt: DateTime.now() }).save();
-      }
+      await storedHash.merge({ updatedAt: DateTime.now() }).save();
       logger.info(
         "Hash already exists in the database. Not proceeding with scraping.",
       );
