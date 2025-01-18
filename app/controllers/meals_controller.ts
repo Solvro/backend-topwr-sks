@@ -30,33 +30,36 @@ export default class MealsController {
       let todayMeals = await getMealsByHash(lastHash.hash);
       logger.debug(`fetched ${todayMeals.length} meals from the database}`);
 
-      if (todayMeals.length === 0) {
-        isMenuOnline = false;
-        logger.debug(
-          "No meals found in the latest hash - fetching the previous one",
-        );
-        const secondLastHash = await WebsiteHash.query()
-          .orderBy("updatedAt", "desc")
-          .offset(1)
-          .first();
-        if (secondLastHash === null) {
-          return response
-            .status(200)
-            .json({ meals: [], isMenuOnline, lastUpdate: lastHash.updatedAt });
-        }
-        todayMeals = await getMealsByHash(secondLastHash.hash);
-        logger.debug(`fetched ${todayMeals.length} meals from the database}`);
+      if (todayMeals.length !== 0) {
+        return response.status(200).json({
+          meals: getMealsDetails(todayMeals),
+          isMenuOnline,
+          lastUpdate: lastHash.updatedAt,
+        });
       }
 
-      const meals = todayMeals.map((singleMeal) => ({
-        ...singleMeal.meal.serialize(),
-        price: singleMeal.price,
-        size: singleMeal.size,
-      }));
+      isMenuOnline = false;
+      logger.debug(
+        "No meals found in the latest hash - fetching the previous one",
+      );
 
-      return response
-        .status(200)
-        .json({ meals, isMenuOnline, lastUpdate: lastHash.updatedAt });
+      const secondLastHash = await WebsiteHash.query()
+        .orderBy("updatedAt", "desc")
+        .offset(1)
+        .first();
+      if (secondLastHash === null) {
+        return response
+          .status(200)
+          .json({ meals: [], isMenuOnline, lastUpdate: lastHash.updatedAt });
+      }
+      todayMeals = await getMealsByHash(secondLastHash.hash);
+      logger.debug(`fetched ${todayMeals.length} meals from the database}`);
+
+      return response.status(200).json({
+        meals: getMealsDetails(todayMeals),
+        isMenuOnline,
+        lastUpdate: secondLastHash.updatedAt,
+      });
     } catch (error) {
       assert(error instanceof Error);
       return response
@@ -116,4 +119,12 @@ async function getMealsByHash(hash: string) {
     logger.error(`Failed to fetch meals for hash ${hash}`, error);
     return [];
   }
+}
+
+function getMealsDetails(todayMeals: HashesMeal[]) {
+  return todayMeals.map((singleMeal) => ({
+    ...singleMeal.meal.serialize(),
+    price: singleMeal.price,
+    size: singleMeal.size,
+  }));
 }
