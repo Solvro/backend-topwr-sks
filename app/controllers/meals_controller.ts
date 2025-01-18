@@ -20,27 +20,32 @@ export default class MealsController {
       const lastHash = await WebsiteHash.query()
         .orderBy("updatedAt", "desc")
         .first();
-      //this case is kinda weird now, but it is very rare
       if (lastHash === null) {
+        logger.debug("No records in the database - run scrapper");
         return response
           .status(200)
           .json({ meals: [], isMenuOnline: false, lastUpdate: DateTime.now() });
       }
       let isMenuOnline = true;
       let todayMeals = await getMealsByHash(lastHash.hash);
+      logger.debug(`fetched ${todayMeals.length} meals from the database}`);
 
       if (todayMeals.length === 0) {
+        isMenuOnline = false;
+        logger.debug(
+          "No meals found in the latest hash - fetching the previous one",
+        );
         const secondLastHash = await WebsiteHash.query()
           .orderBy("updatedAt", "desc")
           .offset(1)
           .first();
-        isMenuOnline = false;
         if (secondLastHash === null) {
           return response
             .status(200)
             .json({ meals: [], isMenuOnline, lastUpdate: lastHash.updatedAt });
         }
         todayMeals = await getMealsByHash(secondLastHash.hash);
+        logger.debug(`fetched ${todayMeals.length} meals from the database}`);
       }
 
       const meals = todayMeals.map((singleMeal) => ({
