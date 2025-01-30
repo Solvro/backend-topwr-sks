@@ -15,15 +15,18 @@ import env from "#start/env";
 
 export const url = "https://sks.pwr.edu.pl/menu/";
 
+const createProxy = () => {
+  const PROXY_URL = env.get("PROXY_URL");
+  return typeof PROXY_URL === "string"
+    ? new HttpsProxyAgent(PROXY_URL)
+    : undefined;
+};
+
 export async function runScrapper() {
   const trx = await db.transaction();
 
-  const PROXY_URL = env.get("PROXY_URL");
-
-  const proxyAgent =
-    typeof PROXY_URL === "string" ? new HttpsProxyAgent(PROXY_URL) : undefined;
   const response = await fetch(url, {
-    agent: proxyAgent,
+    agent: createProxy(),
   });
 
   const data = await response.text();
@@ -116,12 +119,8 @@ export async function scrapeMenu(html: string) {
 }
 
 export async function cacheMenu() {
-  const PROXY_URL = env.get("PROXY_URL");
   const response = await fetch(url, {
-    agent:
-      typeof PROXY_URL === "string"
-        ? new HttpsProxyAgent(PROXY_URL)
-        : undefined,
+    agent: createProxy,
   });
   const data = await response.text();
   return createHash("sha256").update(data).digest("hex");
