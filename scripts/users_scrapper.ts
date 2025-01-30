@@ -4,7 +4,9 @@ import assert from "node:assert";
 import logger from "@adonisjs/core/services/logger";
 import db from "@adonisjs/lucid/services/db";
 
-const url = "https://live.pwr.edu.pl/sks/sks-data.csv";
+import env from "#start/env";
+
+const url = env.get("USERS_URL");
 
 export async function runScrapper() {
   try {

@@ -1,5 +1,7 @@
 import * as cheerio from "cheerio";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { DateTime } from "luxon";
+import fetch from "node-fetch";
 import assert from "node:assert";
 import { createHash } from "node:crypto";
 
@@ -9,15 +11,27 @@ import db from "@adonisjs/lucid/services/db";
 import HashesMeal from "#models/hashes_meal";
 import Meal, { MealCategory } from "#models/meal";
 import WebsiteHash from "#models/website_hash";
+import env from "#start/env";
 
-export const url = "https://sks.pwr.edu.pl/menu/";
+export const url = env.get("MENU_URL");
+
+const createProxy = () => {
+  const PROXY_URL = env.get("PROXY_URL");
+  return typeof PROXY_URL === "string"
+    ? new HttpsProxyAgent(PROXY_URL)
+    : undefined;
+};
 
 export async function runScrapper() {
   const trx = await db.transaction();
-  const response = await fetch(url);
-  const data = await response.text();
 
   try {
+    const response = await fetch(url, {
+      agent: createProxy(),
+    });
+
+    const data = await response.text();
+
     const currentHash = await cacheMenu();
     const storedHash = await WebsiteHash.query()
       .where("hash", currentHash)
@@ -105,7 +119,9 @@ export async function scrapeMenu(html: string) {
 }
 
 export async function cacheMenu() {
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    agent: createProxy,
+  });
   const data = await response.text();
   return createHash("sha256").update(data).digest("hex");
 }

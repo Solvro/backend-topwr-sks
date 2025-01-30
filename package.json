@@ -50,6 +50,7 @@
     "adonisjs-scheduler": "^1.0.5",
     "axios": "^1.7.7",
     "cheerio": "^1.0.0",
+    "https-proxy-agent": "^7.0.6",
     "luxon": "^3.5.0",
     "node-fetch": "^3.3.2",
     "pg": "^8.13.1",
