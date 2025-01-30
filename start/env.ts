@@ -36,7 +36,7 @@ export default await Env.create(new URL("../", import.meta.url), {
   DB_DATABASE: Env.schema.string(),
 
   // Custom variables
-  MENU_URL: Env.schema.string(),
-  USERS_URL: Env.schema.string(),
+  MENU_URL: Env.schema.string({ format: "url" }),
+  USERS_URL: Env.schema.string({ format: "url" }),
   PROXY_URL: Env.schema.string.optional(),
 });
