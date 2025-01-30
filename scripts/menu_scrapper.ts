@@ -1,9 +1,9 @@
 import * as cheerio from "cheerio";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { DateTime } from "luxon";
 import fetch from "node-fetch";
 import assert from "node:assert";
 import { createHash } from "node:crypto";
-import { SocksProxyAgent } from "socks-proxy-agent";
 
 import logger from "@adonisjs/core/services/logger";
 import db from "@adonisjs/lucid/services/db";
@@ -21,7 +21,7 @@ export async function runScrapper() {
   const PROXY_URL = env.get("PROXY_URL");
 
   const proxyAgent =
-    typeof PROXY_URL === "string" ? new SocksProxyAgent(PROXY_URL) : undefined;
+    typeof PROXY_URL === "string" ? new HttpsProxyAgent(PROXY_URL) : undefined;
   const response = await fetch(url, {
     agent: proxyAgent,
   });
@@ -116,7 +116,13 @@ export async function scrapeMenu(html: string) {
 }
 
 export async function cacheMenu() {
-  const response = await fetch(url);
+  const PROXY_URL = env.get("PROXY_URL");
+  const response = await fetch(url, {
+    agent:
+      typeof PROXY_URL === "string"
+        ? new HttpsProxyAgent(PROXY_URL)
+        : undefined,
+  });
   const data = await response.text();
   return createHash("sha256").update(data).digest("hex");
 }
