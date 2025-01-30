@@ -11,7 +11,9 @@ scheduler
     void runMenuScrapper();
   })
   .immediate()
-  .everyFiveMinutes();
+  .everyFifteenMinutes();
+// JDI
+// .everyFiveMinutes();
 
 scheduler
   .call(() => {
