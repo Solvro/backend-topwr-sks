@@ -1,7 +1,9 @@
 import * as cheerio from "cheerio";
 import { DateTime } from "luxon";
+import fetch from "node-fetch";
 import assert from "node:assert";
 import { createHash } from "node:crypto";
+import { SocksProxyAgent } from "socks-proxy-agent";
 
 import logger from "@adonisjs/core/services/logger";
 import db from "@adonisjs/lucid/services/db";
@@ -9,12 +11,21 @@ import db from "@adonisjs/lucid/services/db";
 import HashesMeal from "#models/hashes_meal";
 import Meal, { MealCategory } from "#models/meal";
 import WebsiteHash from "#models/website_hash";
+import env from "#start/env";
 
 export const url = "https://sks.pwr.edu.pl/menu/";
 
 export async function runScrapper() {
   const trx = await db.transaction();
-  const response = await fetch(url);
+
+  const PROXY_URL = env.get("PROXY_URL");
+
+  const proxyAgent =
+    typeof PROXY_URL === "string" ? new SocksProxyAgent(PROXY_URL) : undefined;
+  const response = await fetch(url, {
+    agent: proxyAgent,
+  });
+
   const data = await response.text();
 
   try {

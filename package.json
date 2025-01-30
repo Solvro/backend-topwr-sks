@@ -53,7 +53,8 @@
     "luxon": "^3.5.0",
     "node-fetch": "^3.3.2",
     "pg": "^8.13.1",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "socks-proxy-agent": "^8.0.5"
   },
   "devDependencies": {
     "@adonisjs/assembler": "^7.8.2",
