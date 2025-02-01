@@ -7,7 +7,7 @@ node ./bin/server.js &
 node ace scheduler:run &
 
 # Wait for any process to exit
-wait -n
+wait
 
 # Exit with the status of the process that exited first
 exit $?
