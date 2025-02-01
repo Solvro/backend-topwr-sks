@@ -56,7 +56,8 @@
     "node-fetch": "^3.3.2",
     "pg": "^8.13.1",
     "puppeteer-real-browser": "^1.3.22",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@adonisjs/assembler": "^7.8.2",

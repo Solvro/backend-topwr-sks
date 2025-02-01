@@ -1,11 +1,23 @@
 import { DateTime } from "luxon";
 import assert from "node:assert";
+import { z } from "zod";
 
 import type { HttpContext } from "@adonisjs/core/http";
 import logger from "@adonisjs/core/services/logger";
+import db from "@adonisjs/lucid/services/db";
 
 import HashesMeal from "#models/hashes_meal";
 import WebsiteHash from "#models/website_hash";
+
+const firstHashWithMealsRawSchema = z.object({
+  rows: z
+    .array(
+      z.object({
+        hash: z.string(),
+      }),
+    )
+    .nonempty(),
+});
 
 export default class MealsController {
   /**
@@ -43,22 +55,27 @@ export default class MealsController {
         "No meals found in the latest hash - fetching the previous one",
       );
 
-      const secondLastHash = await WebsiteHash.query()
-        .orderBy("updatedAt", "desc")
-        .offset(1)
-        .first();
-      if (secondLastHash === null) {
-        return response
-          .status(200)
-          .json({ meals: [], isMenuOnline, lastUpdate: lastHash.updatedAt });
-      }
-      todayMeals = await getMealsByHash(secondLastHash.hash);
+      const firstHashWithMealsRaw = firstHashWithMealsRawSchema.parse(
+        await db.rawQuery(`
+            SELECT website_hashes.hash FROM public.website_hashes LEFT JOIN public.hashes_meals ON website_hashes.hash = hashes_meals.hash_fk
+            GROUP BY website_hashes.hash
+            HAVING COUNT(hashes_meals.*) != 0
+            ORDER BY website_hashes.updated_at DESC
+            LIMIT 1
+          `),
+      ).rows[0].hash;
+
+      const firstHashWithMeals = await WebsiteHash.query()
+        .where("hash", firstHashWithMealsRaw)
+        .firstOrFail();
+
+      todayMeals = await getMealsByHash(firstHashWithMeals.hash);
       logger.debug(`fetched ${todayMeals.length} meals from the database}`);
 
       return response.status(200).json({
         meals: getMealsDetails(todayMeals),
         isMenuOnline,
-        lastUpdate: secondLastHash.updatedAt,
+        lastUpdate: firstHashWithMeals.updatedAt,
       });
     } catch (error) {
       assert(error instanceof Error);
