@@ -82,4 +82,14 @@ export default defineConfig({
     ],
     forceExit: false,
   },
+  metaFiles: [
+    {
+      pattern: "start.sh",
+      reloadServer: true,
+    },
+    {
+      pattern: "swagger.*",
+      reloadServer: true,
+    },
+  ],
 });

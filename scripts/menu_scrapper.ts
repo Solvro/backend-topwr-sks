@@ -1,44 +1,24 @@
 import * as cheerio from "cheerio";
-import { HttpsProxyAgent } from "https-proxy-agent";
 import { DateTime } from "luxon";
-import fetch from "node-fetch";
 import assert from "node:assert";
 import { createHash } from "node:crypto";
 
 import logger from "@adonisjs/core/services/logger";
 import db from "@adonisjs/lucid/services/db";
 
+import { getMenuHTML } from "#helpers/captcha";
 import HashesMeal from "#models/hashes_meal";
 import Meal, { MealCategory } from "#models/meal";
 import WebsiteHash from "#models/website_hash";
-import env from "#start/env";
-
-export const url = env.get("MENU_URL");
-
-const createProxy = () => {
-  const PROXY_URL = env.get("PROXY_URL");
-  return typeof PROXY_URL === "string"
-    ? new HttpsProxyAgent(PROXY_URL)
-    : undefined;
-};
 
 export async function runScrapper() {
   const trx = await db.transaction();
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": getRandomUserAgent(),
-      },
-      agent: createProxy(),
-    });
+    const html = await getMenuHTML();
 
-    const data = await response.text();
-
-    const currentHash = await cacheMenu();
-    const storedHash = await WebsiteHash.query()
-      .where("hash", currentHash)
-      .first();
+    const newHash = await getHash(html);
+    const storedHash = await WebsiteHash.query().where("hash", newHash).first();
 
     if (storedHash !== null) {
       await storedHash.merge({ updatedAt: DateTime.now() }).save();
@@ -50,10 +30,11 @@ export async function runScrapper() {
     }
 
     const newWebsiteHash = await WebsiteHash.create(
-      { hash: currentHash },
+      { hash: newHash },
       { client: trx },
     );
-    const meals = await scrapeMenu(data);
+
+    const meals = await parseMenu(html);
 
     for (const meal of meals) {
       if (meal.price === 0) {
@@ -84,7 +65,7 @@ export async function runScrapper() {
   }
 }
 
-export async function scrapeMenu(html: string) {
+export async function parseMenu(html: string) {
   const $ = cheerio.load(html);
 
   return $(".category")
@@ -121,12 +102,8 @@ export async function scrapeMenu(html: string) {
     .flat();
 }
 
-export async function cacheMenu() {
-  const response = await fetch(url, {
-    agent: createProxy,
-  });
-  const data = await response.text();
-  return createHash("sha256").update(data).digest("hex");
+export async function getHash(html: string) {
+  return createHash("sha256").update(html).digest("hex");
 }
 
 function assignCategories(category: string) {
@@ -182,40 +159,4 @@ async function checkIfMealExistsOrCreate(
     );
     return null;
   }
-}
-
-const userAgents = [
-  // Chrome (Windows, Mac, Linux)
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-
-  // Firefox (Windows, Mac, Linux)
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
-  "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:119.0) Gecko/20100101 Firefox/119.0",
-
-  // Edge (Windows, Mac)
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0",
-
-  // Safari (Mac, iOS)
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_3) AppleWebKit/537.36 (KHTML, like Gecko) Version/17.2 Safari/537.36",
-  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/537.36",
-  "Mozilla/5.0 (iPad; CPU OS 16_1 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/16.1 Mobile/15E148 Safari/537.36",
-
-  // Android Devices
-  "Mozilla/5.0 (Linux; Android 14; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
-  "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
-  "Mozilla/5.0 (Linux; Android 12; SM-G998U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
-
-  // Older Browsers
-  "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36",
-  "Mozilla/5.0 (Windows NT 6.3; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0",
-];
-
-function getRandomUserAgent() {
-  return userAgents[Math.floor(Math.random() * userAgents.length)];
 }
