@@ -23,6 +23,10 @@ router
     router.get("/docs", async () => {
       return AutoSwagger.default.ui("/api/v1/swagger", swagger);
     });
+
+    router.get("/healthcheck", async () => {
+      return "elo żelo";
+    });
   })
   .prefix("/api/v1");
 
