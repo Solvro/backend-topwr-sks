@@ -46,13 +46,11 @@ export async function getMenuHTML(): Promise<string> {
 
   await page.setUserAgent(getRandomUserAgent());
 
-  const pageContent = await page.goto(env.get("MENU_URL"));
-  const html = await pageContent?.text();
-  await browser.close();
+  await page.goto(env.get("MENU_URL"));
 
-  if (html === undefined) {
-    throw new Error("Failed to get the page content. HTML is undefined");
-  }
+  const html = await page.content();
+
+  await browser.close();
 
   return html;
 }
