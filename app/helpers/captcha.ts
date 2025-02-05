@@ -4,7 +4,7 @@ import logger from "@adonisjs/core/services/logger";
 
 import env from "#start/env";
 
-import { getProxyConfig } from "./proxy.js";
+import { getProxyConfig, usesProxy } from "./proxy.js";
 
 type PageWithCursor = Awaited<ReturnType<typeof connect>>["page"];
 type ElementHandleOrNull = Awaited<ReturnType<PageWithCursor["$"]>>;
@@ -42,7 +42,7 @@ async function unlockCaptcha(page: PageWithCursor, url: string) {
 }
 
 export async function getMenuHTML(): Promise<string> {
-  const proxy = getProxyConfig();
+  const proxy = usesProxy ? getProxyConfig() : undefined;
 
   const url = env.get("MENU_URL");
   const { page, browser } = await connect({

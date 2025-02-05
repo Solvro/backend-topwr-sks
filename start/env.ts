@@ -43,6 +43,7 @@ export default await Env.create(new URL("../", import.meta.url), {
   PROXY_PASSWORD: Env.schema.string(),
   PROXY_URL: Env.schema.string(),
   PROXY_PORT: Env.schema.number(),
+  USES_PROXY: Env.schema.boolean.optional(),
 
   RUN_MENU_SCRAPPER: Env.schema.boolean(),
   RUN_USERS_SCRAPPER: Env.schema.boolean(),

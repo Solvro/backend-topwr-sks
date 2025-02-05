@@ -9,6 +9,8 @@ export interface ProxyConfig {
   host: string;
 }
 
+export const usesProxy = env.get("USES_PROXY", false);
+
 export const getProxyConfig = (): ProxyConfig => {
   return {
     username: `${env.get("PROXY_LOGIN")}-session-${crypto.randomBytes(16).toString("hex")}`,
