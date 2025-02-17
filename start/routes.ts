@@ -6,13 +6,17 @@ import swagger from "#config/swagger";
 
 const MealsController = () => import("#controllers/meals_controller");
 const SksUsersController = () => import("#controllers/sks_users_controller");
+const InfoController = () => import("#controllers/info_controller");
 
 router
   .group(() => {
     router.get("/meals", [MealsController, "index"]);
     router.get("/meals/current", [MealsController, "current"]);
+
     router.get("/sks-users/current", [SksUsersController, "latest"]);
     router.get("/sks-users/today", [SksUsersController, "today"]);
+
+    router.get("/info", [InfoController, "openingHours"]);
 
     // returns swagger in YAML
     router.get("/swagger", async () => {
