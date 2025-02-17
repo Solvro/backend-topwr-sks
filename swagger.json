@@ -107,7 +107,7 @@
           },
           "meal_id": {
             "type": "number",
-            "example": 502
+            "example": 398
           },
           "size": {
             "type": "string",
@@ -131,7 +131,7 @@
         "properties": {
           "id": {
             "type": "number",
-            "example": 715
+            "example": 151
           },
           "name": {
             "type": "string",
@@ -496,6 +496,40 @@
         },
         "security": []
       }
+    },
+    "/api/v1/info": {
+      "get": {
+        "summary": " (openingHours)",
+        "description": "\n\n _app/controllers/info_controller.ts_ - **openingHours**",
+        "parameters": [],
+        "tags": ["INFO"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {}
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/healthcheck": {
+      "get": {
+        "summary": "route",
+        "description": "\n\n __ - ****",
+        "parameters": [],
+        "tags": ["HEALTHCHECK"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {}
+            }
+          }
+        },
+        "security": []
+      }
     }
   },
   "tags": [
@@ -506,6 +540,14 @@
     {
       "name": "SKS-USERS",
       "description": "Everything related to SKS-USERS"
+    },
+    {
+      "name": "INFO",
+      "description": "Everything related to INFO"
+    },
+    {
+      "name": "HEALTHCHECK",
+      "description": "Everything related to HEALTHCHECK"
     }
   ]
 }
