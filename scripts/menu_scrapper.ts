@@ -12,6 +12,10 @@ import HashesMeal from "#models/hashes_meal";
 import Meal, { MealCategory } from "#models/meal";
 import WebsiteHash from "#models/website_hash";
 
+// this regex is barely readable
+// number, then optionally "g" or "ml", then optionally "/" + number + "g" or "ml", end of string
+const SIZE_REGEX = /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?$/;
+
 export async function runScrapper() {
   const trx = await db.transaction();
 
@@ -100,13 +104,10 @@ export async function parseMenu(html: string) {
             };
           }
 
-          const nameMatch = /[\D\s]+/.exec(itemText);
-          const itemName = nameMatch !== null ? nameMatch[0].trim() : itemText;
-
-          const sizeMatch =
-            /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?$/.exec(itemText);
+          const sizeMatch = SIZE_REGEX.exec(itemText);
           const itemSize =
             sizeMatch !== null ? sizeMatch[0].trim().replace(" ", "") : "-";
+          const itemName = itemText.replace(SIZE_REGEX, "").trim();
 
           return {
             name: itemName,
