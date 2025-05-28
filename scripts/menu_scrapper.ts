@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { ElementType } from "domelementtype";
 import { DateTime } from "luxon";
 import assert from "node:assert";
 import { createHash } from "node:crypto";
@@ -37,9 +38,6 @@ export async function runScrapper() {
     const meals = await parseMenu(html);
 
     for (const meal of meals) {
-      if (meal.price === 0) {
-        meal.category = MealCategory.TechnicalInfo;
-      }
       const newMeal = await checkIfMealExistsOrCreate(meal.name, meal.category);
       if (newMeal !== null) {
         await HashesMeal.create(
@@ -71,21 +69,42 @@ export async function parseMenu(html: string) {
   return $(".category")
     .map((_, category) => {
       const categoryName = $(category).find(".cat_name h2").text().trim();
+      const categoryEnum = assignCategories(categoryName);
 
       return $(category)
         .find(".pos ul li")
         .map((__, item) => {
-          const itemText = $(item).text().trim().replace(/\s+/g, " ");
+          const itemText = item.children
+            .find((el) => el.type === ElementType.Text)
+            ?.data.trim()
+            .replace(/\s+/g, " ");
+
+          // failed to extract only the text field
+          // return empty array to have .flat() skip this iteration
+          if (itemText === undefined) {
+            return [];
+          }
+
           const price = $(item).find(".price").text().trim();
           const priceNumeric = Number.parseFloat(price);
+
+          if (
+            categoryEnum === MealCategory.TechnicalInfo ||
+            priceNumeric === 0
+          ) {
+            return {
+              name: itemText,
+              size: "-",
+              price: 0,
+              category: MealCategory.TechnicalInfo,
+            };
+          }
 
           const nameMatch = /[\D\s]+/.exec(itemText);
           const itemName = nameMatch !== null ? nameMatch[0].trim() : itemText;
 
           const sizeMatch =
-            /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?\s+(?=\d+(?=\.\d+)?)/.exec(
-              itemText,
-            );
+            /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?$/.exec(itemText);
           const itemSize =
             sizeMatch !== null ? sizeMatch[0].trim().replace(" ", "") : "-";
 
@@ -93,7 +112,7 @@ export async function parseMenu(html: string) {
             name: itemName,
             size: itemSize,
             price: priceNumeric,
-            category: assignCategories(categoryName),
+            category: categoryEnum,
           };
         })
         .get();
