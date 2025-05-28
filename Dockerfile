@@ -23,19 +23,17 @@ ADD package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 # Build stage
-FROM base AS build
+FROM deps AS build
 WORKDIR /app
-COPY --from=deps /app/node_modules /app/node_modules
 ADD . .
 RUN node ace build
 
 # Production stage
-FROM base
+FROM production-deps
 ENV NODE_ENV=production
 WORKDIR /app
 
 # Copy docs
-COPY --from=production-deps /app/node_modules /app/node_modules
 COPY --from=build /app/build /app
 
 # proxy port

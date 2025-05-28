@@ -1,0 +1,18 @@
+# Dependencies and AdonisJS build
+node_modules
+build
+tmp
+
+# Build tools specific
+npm-debug.log
+yarn-error.log
+
+# Editors specific
+.fleet
+.idea
+.vscode
+
+# Platform specific
+.DS_Store
+
+.git
