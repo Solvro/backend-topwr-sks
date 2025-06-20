@@ -7,6 +7,10 @@ import swagger from "#config/swagger";
 const MealsController = () => import("#controllers/meals_controller");
 const SksUsersController = () => import("#controllers/sks_users_controller");
 const InfoController = () => import("#controllers/info_controller");
+const RegistrationTokensController = () =>
+  import("#controllers/registration_tokens_controller");
+const SubscriptionsController = () =>
+  import("#controllers/subscriptions_controller");
 
 router
   .group(() => {
@@ -17,6 +21,17 @@ router
     router.get("/sks-users/today", [SksUsersController, "today"]);
 
     router.get("/info", [InfoController, "openingHours"]);
+
+    router.post("/device/registration-token", [
+      RegistrationTokensController,
+      "update",
+    ]);
+
+    router.post("/subscriptions/toggle", [SubscriptionsController, "toggle"]);
+    router.get("/subscriptions/:device_key", [
+      SubscriptionsController,
+      "listForDevice",
+    ]);
 
     // returns swagger in YAML
     router.get("/swagger", async () => {
