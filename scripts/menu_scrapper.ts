@@ -12,6 +12,8 @@ import HashesMeal from "#models/hashes_meal";
 import Meal, { MealCategory } from "#models/meal";
 import WebsiteHash from "#models/website_hash";
 
+import { notifyFavouriteMeal } from "./favourite_meal_notifier.js";
+
 // this regex is barely readable
 // number, then optionally "g" or "ml", then optionally "/" + number + "g" or "ml", end of string
 const SIZE_REGEX = /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?$/;
@@ -56,6 +58,7 @@ export async function runScrapper() {
         logger.debug(
           `${meal.name} added as ${newWebsiteHash.hash} connection.`,
         );
+        await notifyFavouriteMeal(newMeal.id);
       }
     }
     logger.info("Menu updated successfully.");
