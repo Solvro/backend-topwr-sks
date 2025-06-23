@@ -34,6 +34,11 @@ router
   })
   .prefix("/api/v1");
 
+router.get("/metrics", [
+  () => import("@solvro/solvronis-metrics"),
+  "emitMetrics",
+]);
+
 // Reroute some paths to docs
 const redirectPaths = ["/", "/api", "/api/v1", "/api/docs", "/docs"];
 redirectPaths.forEach((path) => {
