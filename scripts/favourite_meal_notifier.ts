@@ -1,4 +1,5 @@
-import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
+import { credential } from "firebase-admin";
+import { getApps, initializeApp } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 import assert from "node:assert";
 
@@ -42,7 +43,7 @@ export async function notifyFavouriteMeal(mealId: number) {
 
     if (!getApps().length) {
       initializeApp({
-        credential: applicationDefault(),
+        credential: credential.applicationDefault(),
       });
     }
 
