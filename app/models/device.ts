@@ -40,7 +40,7 @@ export default class Device extends BaseModel {
       .update({
         tokenTimestamp: DateTime.now(),
       })
-      .where("id", ids);
+      .whereIn("id", ids);
   }
 
   public static async removeTokens(ids: number[]) {
@@ -49,6 +49,6 @@ export default class Device extends BaseModel {
         registrationToken: null,
         tokenTimestamp: null,
       })
-      .where("id", ids);
+      .whereIn("id", ids);
   }
 }

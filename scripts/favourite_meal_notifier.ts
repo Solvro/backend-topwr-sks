@@ -1,7 +1,5 @@
-import { credential } from "firebase-admin";
-import { getApps, initializeApp } from "firebase-admin/app";
+import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
-import assert from "node:assert";
 
 import logger from "@adonisjs/core/services/logger";
 
@@ -25,6 +23,9 @@ interface FBDebugMessage {
 }
 
 export async function notifyFavouriteMeal(mealId: number) {
+  logger.info(`Processing subscriptions for meal_id=${mealId}...`);
+  // Initialize
+  let subscriptions;
   try {
     // Boot the database
     if (!Subscription.booted) {
@@ -38,105 +39,133 @@ export async function notifyFavouriteMeal(mealId: number) {
         relation.boot();
       }
     });
-    // Active tokens
-    const tokenTimestampsToRefresh = new Set<number>();
-    // Expired tokens
-    const tokenTimestampsToDelete = new Set<number>();
     // Query subscriptions for the meal
-    const subscriptions = (await Subscription.query()
+    subscriptions = (await Subscription.query()
       .where("mealId", mealId)
       .preload("device")) as SubscriptionWithDevice[];
-    const mealIdString = mealId.toString();
-    // Prepare valid messages
-    const now = Date.now();
-    const validMessages: FBDebugMessage[] = subscriptions
-      .filter((sub) => {
-        if (sub.device.registrationToken !== null) {
-          return true;
-        }
-        const tokenTimestamp = sub.device.tokenTimestamp?.toMillis();
-        if (
-          tokenTimestamp !== undefined &&
-          getTokenExpirationTime(tokenTimestamp, now) <= 0
-        ) {
-          // Token has expired
-          tokenTimestampsToDelete.add(sub.device.id);
-          return false;
-        }
-        // Token is not expired or we don't know about the expiry - let FB handle it
-        return true;
-      })
-      .map((sub): FBDebugMessage => {
-        tokenTimestampsToRefresh.add(sub.device.id);
-        return {
-          deviceId: sub.device.id,
-          message: {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            token: sub.device.registrationToken!,
-            data: {
-              mealId: mealIdString,
-            },
-          },
-        };
-      });
-
-    if (validMessages.length === 0) {
-      logger.info(`No registration tokens found for meal_id=${mealId}.`);
-      return;
-    }
-
-    logger.info(
-      `Found ${validMessages.length} subscribed device(s) for meal_id=${mealId}.`,
+  } catch (error) {
+    logger.error(
+      "Failed to initialize database. Exiting early. Error: ",
+      error,
     );
-    // Init FB
+    return;
+  }
+  // Active tokens
+  const tokensToRefresh = new Set<number>();
+  // Expired/Invalid tokens
+  const tokensToDelete = new Set<number>();
+  // Prepare valid messages
+  const mealIdString = mealId.toString();
+  const now = Date.now();
+  const validMessages: FBDebugMessage[] = subscriptions
+    .filter((sub) => {
+      if (sub.device.registrationToken === null) {
+        // No token - skip
+        return false;
+      }
+      const tokenTimestamp = sub.device.tokenTimestamp?.toMillis();
+      if (
+        tokenTimestamp !== undefined &&
+        getTokenExpirationTime(tokenTimestamp, now) <= 0
+      ) {
+        // Expired token
+        tokensToDelete.add(sub.device.id);
+        return false;
+      }
+      // Token is not expired or we don't know about the expiry
+      return true;
+    })
+    .map((sub): FBDebugMessage => {
+      tokensToRefresh.add(sub.device.id);
+      return {
+        deviceId: sub.device.id,
+        message: {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          token: sub.device.registrationToken!,
+          data: {
+            mealId: mealIdString,
+          },
+        },
+      };
+    });
+
+  if (validMessages.length === 0) {
+    logger.info("No registration tokens found. Exiting early.");
+    return;
+  }
+  logger.info(`Found ${validMessages.length} subscribed device(s)`);
+  // Init FB
+  try {
     if (!getApps().length) {
       initializeApp({
-        credential: credential.applicationDefault(),
+        credential: applicationDefault(),
       });
+      logger.info("Firebase app initialized.");
     }
-    validMessages.forEach((message) => {
-      try {
-        getMessaging()
-          .send(message.message)
-          .then((response) => {
-            logger.info("Successfully sent message:", response);
-          })
-          .catch((error) => {
-            logger.info("Error sending message:", error);
-            const fbError = error as { errorCode: string };
-            if (
-              fbError.errorCode ===
-              "messaging/registration-token-not-registered"
-            ) {
-              logger.info(
-                "Device token expired or not registered anymore - will remove from the database.",
-              );
-              // Token was not expired in our DB but FB deemed it invalid
-              tokenTimestampsToDelete.add(message.deviceId);
-              tokenTimestampsToRefresh.delete(message.deviceId);
-            }
-          });
-        logger.debug(`Notification sent to device ID: ${message.deviceId}`);
-      } catch (error) {
-        assert(error instanceof Error);
-        logger.error(
-          `Failed to notify device ID: ${message.deviceId} - ${error.message}`,
-          error.stack,
+  } catch (error) {
+    logger.error(
+      "Failed to initialize Firebase app. Exiting early. Error: ",
+      error,
+    );
+    return;
+  }
+  const messagingService = getMessaging();
+  let successCount = 0;
+
+  for (const message of validMessages) {
+    try {
+      await messagingService.send(message.message);
+      logger.debug(`Device ${message.deviceId}: Success`);
+      successCount++;
+    } catch (error) {
+      const fbError = error as { code: string; message: string };
+      if (fbError.code === "messaging/registration-token-not-registered") {
+        // Token was not expired in our DB but FB deemed it expired
+        logger.debug(
+          `Device ${message.deviceId}: Failure - Token expired or not registered in FB`,
+        );
+        tokensToDelete.add(message.deviceId);
+        tokensToRefresh.delete(message.deviceId);
+      } else if (fbError.code === "messaging/invalid-argument") {
+        // Token is not valid because it is simply not - not due to expiry
+        logger.debug(
+          `Device ${message.deviceId}: Failure - Token is not valid`,
+        );
+        tokensToDelete.add(message.deviceId);
+        tokensToRefresh.delete(message.deviceId);
+      } else {
+        // Error not related to the token itself
+        logger.warn(
+          `Device ${message.deviceId}: Failure - unknown error ${fbError.code}. Error: ${fbError.message}`,
         );
       }
-    });
-    logger.info(`Finished processing subscriptions for meal_id=${mealId}.`);
-    // Update token timestamps
-    logger.info("Updating token state in the database...");
-    await Device.refreshTokenTimestamps([...tokenTimestampsToRefresh]);
-    logger.info(`Refreshed ${tokenTimestampsToRefresh.size} tokens`);
-    await Device.removeTokens([...tokenTimestampsToDelete]);
-    logger.info(`Removed invalid ${tokenTimestampsToDelete.size} tokens`);
-  } catch (error) {
-    assert(error instanceof Error);
-    logger.error(
-      `Failed to process subscriptions for meal_id=${mealId}: ${error.message}`,
-      error.stack,
-    );
+    }
+  }
+  logger.info(
+    `Successfully sent ${successCount} out of possible ${validMessages.length} messages.`,
+  );
+  await updateTokenState(tokensToDelete, tokensToRefresh);
+}
+
+async function updateTokenState(
+  tokensToDelete: Set<number>,
+  tokensToRefresh: Set<number>,
+) {
+  logger.info("Updating token state in the database...");
+  if (tokensToRefresh.size > 0) {
+    try {
+      await Device.refreshTokenTimestamps([...tokensToRefresh]);
+      logger.info(`Refreshed ${tokensToRefresh.size} tokens`);
+    } catch (error) {
+      logger.warn(`Failed to refresh tokens: `, error);
+    }
+  }
+  if (tokensToDelete.size > 0) {
+    try {
+      await Device.removeTokens([...tokensToDelete]);
+      logger.info(`Removed invalid ${tokensToDelete.size} tokens`);
+    } catch (error) {
+      logger.warn(`Failed to remove tokens: `, error);
+    }
   }
 }

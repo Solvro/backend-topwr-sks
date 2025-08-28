@@ -26,7 +26,7 @@ router
       RegistrationTokensController,
       "update",
     ]);
-    router.get("/device/registration-token", [
+    router.get("/device/registration-token/:device_key", [
       RegistrationTokensController,
       "hasToken",
     ]);
