@@ -34,4 +34,21 @@ export default class Device extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime<true>;
+
+  public static async refreshTokenTimestamps(ids: number[]) {
+    return Device.query()
+      .update({
+        tokenTimestamp: DateTime.now(),
+      })
+      .where("id", ids);
+  }
+
+  public static async removeTokens(ids: number[]) {
+    return Device.query()
+      .update({
+        registrationToken: null,
+        tokenTimestamp: null,
+      })
+      .where("id", ids);
+  }
 }
