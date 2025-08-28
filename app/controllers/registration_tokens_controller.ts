@@ -85,11 +85,9 @@ export default class RegistrationTokensController {
         await device.save();
       }
 
-      return response
-        .status(200)
-        .json({
-          message: `Token ${shouldRemoveToken ? "removed" : "updated"} successfully`,
-        });
+      return response.status(200).json({
+        message: `Token ${shouldRemoveToken ? "removed" : "updated"} successfully`,
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return response.status(400).json({
