@@ -22,9 +22,13 @@ router
 
     router.get("/info", [InfoController, "openingHours"]);
 
-    router.post("/device/registration-token", [
+    router.put("/device/registration-token", [
       RegistrationTokensController,
       "update",
+    ]);
+    router.get("/device/registration-token", [
+      RegistrationTokensController,
+      "hasToken",
     ]);
 
     router.post("/subscriptions/toggle", [SubscriptionsController, "toggle"]);

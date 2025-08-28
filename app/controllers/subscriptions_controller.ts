@@ -50,15 +50,19 @@ export default class SubscriptionsController {
         .first();
 
       if (subscribe) {
+        const res = response.status(200);
         if (existing === null) {
           await Subscription.create({ deviceId: device.id, mealId: meal.id });
+          return res.json({ message: "Subscribed" });
         }
-        return response.status(200).json({ message: "Subscribed" });
+        return res.json({ message: "Already subscribed" });
       } else {
+        const res = response.status(200);
         if (existing !== null) {
           await existing.delete();
+          return res.json({ message: "Unsubscribed" });
         }
-        return response.status(200).json({ message: "Unsubscribed" });
+        return res.json({ message: "Was not subscribed to this meal" });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -81,12 +85,17 @@ export default class SubscriptionsController {
    * @summary Get current menu items and online status
    * @description Retrieves the most recent menu items from the latest website scrape. If the latest scrape returned no meals, falls back to the previous scrape.
    * @responseBody 200 - {"meals":[{"id":"number","name":"string","category":"SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO","createdAt":"timestamp","updatedAt":"timestamp","description":"string","size":"string","price":"number"}],"isMenuOnline":"boolean","lastUpdate":"timestamp"}
+   * @responseBody 400 - {"error":"string"}
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async listForDevice({ request, response }: HttpContext) {
     try {
-      const deviceKey = request.param("device_key") as string;
-
+      const deviceKey = request.param("device_key") as string | undefined;
+      if (deviceKey === undefined) {
+        return response
+          .status(400)
+          .json({ error: "Missing device_key in the request" });
+      }
       const device = await Device.findByOrFail("deviceKey", deviceKey);
 
       const subscriptions = await Subscription.query()

@@ -2,6 +2,20 @@ import { DateTime } from "luxon";
 
 import { BaseModel, column } from "@adonisjs/lucid/orm";
 
+export const TOKEN_EXPIRATION_TIME_MS = 1000 * 60 * 60 * 24 * 270; // 270 days - mirroring the Firebase
+
+/**
+ * @param tokenTimestamp device.tokenTimestamp
+ * @param relativeTime Timestamp relative to which calculations will be performed
+ * @returns Token expiration time in millis. If negative, the token is invalid
+ */
+export function getTokenExpirationTime(
+  tokenTimestamp: number,
+  relativeTime: number,
+): number {
+  return TOKEN_EXPIRATION_TIME_MS + relativeTime - tokenTimestamp;
+}
+
 export default class Device extends BaseModel {
   @column({ isPrimary: true })
   declare id: number;
@@ -13,11 +27,11 @@ export default class Device extends BaseModel {
   declare registrationToken: string | null;
 
   @column.dateTime()
-  declare tokenTimestamp: DateTime | null;
+  declare tokenTimestamp: DateTime<true> | null;
 
   @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime;
+  declare createdAt: DateTime<true>;
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updatedAt: DateTime;
+  declare updatedAt: DateTime<true>;
 }
