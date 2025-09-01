@@ -5,7 +5,6 @@ import type { HttpContext } from "@adonisjs/core/http";
 
 import Device from "#models/device";
 import Meal from "#models/meal";
-import Subscription from "#models/subscription";
 
 const SubscriptionToggleSchema = z.object({
   deviceKey: z.string().min(1),
@@ -14,10 +13,12 @@ const SubscriptionToggleSchema = z.object({
 });
 
 interface RawSubscriptionToggleInput {
-  device_key: unknown;
-  meal_id: unknown;
+  deviceKey: unknown;
+  mealId: unknown;
   subscribe: unknown;
 }
+
+const deviceKeySchema = z.string().min(1, "deviceKey param is required");
 
 export default class SubscriptionsController {
   /**
@@ -34,32 +35,33 @@ export default class SubscriptionsController {
       const raw = request.body() as RawSubscriptionToggleInput;
 
       const parsed = SubscriptionToggleSchema.parse({
-        deviceKey: raw.device_key,
-        mealId: raw.meal_id,
+        deviceKey: raw.deviceKey,
+        mealId: raw.mealId,
         subscribe: raw.subscribe,
       });
 
       const { deviceKey, mealId, subscribe } = parsed;
 
-      const device = await Device.findByOrFail("deviceKey", deviceKey);
+      const device = await Device.query()
+        .where("deviceKey", deviceKey)
+        .preload("meals")
+        .firstOrFail();
+
       const meal = await Meal.findOrFail(mealId);
-
-      const existing = await Subscription.query()
-        .where("deviceId", device.id)
-        .andWhere("mealId", meal.id)
-        .first();
-
+      const existingMealIndex = device.meals.indexOf(meal);
       if (subscribe) {
         const res = response.status(200);
-        if (existing === null) {
-          await Subscription.create({ deviceId: device.id, mealId: meal.id });
-          return res.json({ message: "Subscribed" });
+        if (existingMealIndex !== -1) {
+          return res.json({ message: "Already subscribed" });
         }
-        return res.json({ message: "Already subscribed" });
+        device.meals.push(meal);
+        await device.save();
+        return res.json({ message: "Subscribed" });
       } else {
         const res = response.status(200);
-        if (existing !== null) {
-          await existing.delete();
+        if (existingMealIndex !== -1) {
+          device.meals.splice(existingMealIndex, 1);
+          await device.save();
           return res.json({ message: "Unsubscribed" });
         }
         return res.json({ message: "Was not subscribed to this meal" });
@@ -82,32 +84,19 @@ export default class SubscriptionsController {
 
   /**
    * @current
-   * @summary Get current menu items and online status
-   * @description Retrieves the most recent menu items from the latest website scrape. If the latest scrape returned no meals, falls back to the previous scrape.
-   * @responseBody 200 - {"meals":[{"id":"number","name":"string","category":"SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO","createdAt":"timestamp","updatedAt":"timestamp","description":"string","size":"string","price":"number"}],"isMenuOnline":"boolean","lastUpdate":"timestamp"}
-   * @responseBody 400 - {"error":"string"}
-   * @responseBody 500 - {"message":"string","error":"string"}
+   * @summary Get meals the device is subscribed to
    */
   async listForDevice({ request, response }: HttpContext) {
     try {
-      const deviceKey = request.param("device_key") as string | undefined;
-      if (deviceKey === undefined) {
-        return response
-          .status(400)
-          .json({ error: "Missing device_key in the request" });
-      }
-      const device = await Device.findByOrFail("deviceKey", deviceKey);
+      const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
 
-      const subscriptions = await Subscription.query()
-        .where("deviceId", device.id)
-        .preload("meal");
+      const device = await Device.query()
+        .where("deviceKey", deviceKey)
+        .preload("meals")
+        .firstOrFail();
 
       return response.status(200).json({
-        subscriptions: subscriptions.map((sub) => ({
-          id: sub.id,
-          meal: sub.meal.serialize(),
-          subscribedAt: sub.createdAt,
-        })),
+        subscriptions: device.meals,
       });
     } catch (error) {
       assert(error instanceof Error);

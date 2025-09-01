@@ -24,7 +24,7 @@ router
 
     router.put("/device/registration-token", [
       RegistrationTokensController,
-      "update",
+      "updateOrCreate",
     ]);
     router.get("/device/registration-token/:device_key", [
       RegistrationTokensController,

@@ -13,9 +13,11 @@ const RegistrationTokenPayload = z.object({
 });
 
 interface RegistrationTokenInput {
-  device_key: unknown;
-  registration_token: unknown;
+  deviceKey: unknown;
+  registrationToken: unknown;
 }
+
+const deviceKeySchema = z.string().min(1, "deviceKey param is required");
 
 export default class RegistrationTokensController {
   /**
@@ -25,12 +27,7 @@ export default class RegistrationTokensController {
    * @responseBody 400 - {"error":"string"}
    */
   async hasToken({ request, response }: HttpContext) {
-    const deviceKey = request.param("device_key") as string | undefined;
-    if (deviceKey === undefined) {
-      return response
-        .status(400)
-        .json({ error: "Missing device_key in the request" });
-    }
+    const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
     const device = await Device.findByOrFail("deviceKey", deviceKey);
     if (device.registrationToken === null) {
       return response.status(200).json({ currentToken: null, validFor: null });
@@ -58,32 +55,24 @@ export default class RegistrationTokensController {
    * @responseBody 400 - {"message":"string","error":"string"}
    * @responseBody 500 - {"message":"string","error":"string"}
    */
-  async update({ request, response }: HttpContext) {
+  async updateOrCreate({ request, response }: HttpContext) {
     try {
       const raw = request.body() as RegistrationTokenInput;
 
-      // Convert from snake_case to camelCase and validate
       const parsed = RegistrationTokenPayload.parse({
-        deviceKey: raw.device_key,
-        registrationToken: raw.registration_token,
+        deviceKey: raw.deviceKey,
+        registrationToken: raw.registrationToken,
       });
 
       const { deviceKey, registrationToken } = parsed;
       const shouldRemoveToken = registrationToken === null;
-      const device = await Device.firstOrCreate(
+      await Device.updateOrCreate(
         { deviceKey },
         {
           registrationToken,
           tokenTimestamp: shouldRemoveToken ? null : DateTime.now(),
         },
       );
-
-      // Found existing
-      if (device.registrationToken !== registrationToken) {
-        device.registrationToken = registrationToken;
-        device.tokenTimestamp = shouldRemoveToken ? null : DateTime.now();
-        await device.save();
-      }
 
       return response.status(200).json({
         message: `Token ${shouldRemoveToken ? "removed" : "updated"} successfully`,
