@@ -5,8 +5,7 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.bigIncrements("id");
-      table.text("device_key").notNullable();
+      table.text("device_key").primary();
       table.text("registration_token").nullable();
       table.timestamp("token_timestamp").nullable();
 

@@ -1,6 +1,9 @@
 import { DateTime } from "luxon";
 
-import { BaseModel, column } from "@adonisjs/lucid/orm";
+import { BaseModel, column, manyToMany } from "@adonisjs/lucid/orm";
+import type { ManyToMany } from "@adonisjs/lucid/types/relations";
+
+import Meal from "#models/meal";
 
 export const TOKEN_EXPIRATION_TIME_MS = 1000 * 60 * 60 * 24 * 270; // 270 days - mirroring the Firebase
 
@@ -18,9 +21,6 @@ export function getTokenExpirationTime(
 
 export default class Device extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number;
-
-  @column()
   declare deviceKey: string;
 
   @column()
@@ -35,20 +35,29 @@ export default class Device extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime<true>;
 
-  public static async refreshTokenTimestamps(ids: number[]) {
+  @manyToMany(() => Meal, {
+    pivotTable: "subscriptions",
+    localKey: "deviceKey",
+    pivotForeignKey: "device_key",
+    relatedKey: "id",
+    pivotRelatedForeignKey: "meal_id",
+  })
+  declare meals: ManyToMany<typeof Meal>;
+
+  public static async updateTokenTimestamps(ids: string[]) {
     return Device.query()
       .update({
         tokenTimestamp: DateTime.now(),
       })
-      .whereIn("id", ids);
+      .whereIn("device_key", ids);
   }
 
-  public static async removeTokens(ids: number[]) {
+  public static async removeTokens(ids: string[]) {
     return Device.query()
       .update({
         registrationToken: null,
         tokenTimestamp: null,
       })
-      .whereIn("id", ids);
+      .whereIn("device_key", ids);
   }
 }

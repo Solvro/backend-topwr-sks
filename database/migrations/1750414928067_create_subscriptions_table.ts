@@ -5,19 +5,18 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.increments("id");
-      table.bigInteger("meal_id").unsigned();
-      table.bigInteger("device_id").unsigned();
-
       table
-        .foreign("meal_id")
+        .bigInteger("meal_id")
+        .unsigned()
+        .primary()
         .references("id")
         .inTable("meals")
         .onDelete("CASCADE");
-
       table
-        .foreign("device_id")
-        .references("id")
+        .string("device_key")
+        .unsigned()
+        .primary()
+        .references("device_key")
         .inTable("devices")
         .onDelete("CASCADE");
 
