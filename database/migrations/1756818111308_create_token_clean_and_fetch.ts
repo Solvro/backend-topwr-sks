@@ -34,7 +34,7 @@ export default class extends BaseSchema {
                                d.registration_token
                         FROM devices d
                                  JOIN subscriptions s ON d.device_key = s.device_key
-                        WHERE s.meal_id = meal_id
+                        WHERE s.meal_id = meal_id_value
                           AND d.registration_token IS NOT NULL;
                 END;
             ';
