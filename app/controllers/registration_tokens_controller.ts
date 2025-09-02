@@ -1,10 +1,9 @@
 import { DateTime } from "luxon";
-import assert from "node:assert";
 import { z, null as zodNull } from "zod";
 
 import type { HttpContext } from "@adonisjs/core/http";
-import logger from "@adonisjs/core/services/logger";
 
+import { handleError } from "#exceptions/handler";
 import Device, { getTokenExpirationTime } from "#models/device";
 
 const RegistrationTokenPayload = z.object({
@@ -27,23 +26,29 @@ export default class RegistrationTokensController {
    * @responseBody 400 - {"error":"string"}
    */
   async hasToken({ request, response }: HttpContext) {
-    const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
-    const device = await Device.findByOrFail("deviceKey", deviceKey);
-    if (device.registrationToken === null) {
-      return response.status(200).json({ currentToken: null, validFor: null });
-    }
-    const tokenTimestamp = device.tokenTimestamp?.toMillis();
-    const now = Date.now();
-    let validFor: number | null = null;
-    if (tokenTimestamp !== undefined) {
-      const expiration = getTokenExpirationTime(tokenTimestamp, now);
-      if (expiration > 0) {
-        validFor = expiration;
+    try {
+      const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
+      const device = await Device.findByOrFail("deviceKey", deviceKey);
+      if (device.registrationToken === null) {
+        return response
+          .status(200)
+          .json({ currentToken: null, validFor: null });
       }
+      const tokenTimestamp = device.tokenTimestamp?.toMillis();
+      const now = Date.now();
+      let validFor: number | null = null;
+      if (tokenTimestamp !== undefined) {
+        const expiration = getTokenExpirationTime(tokenTimestamp, now);
+        if (expiration > 0) {
+          validFor = expiration;
+        }
+      }
+      return response
+        .status(200)
+        .json({ currentToken: device.registrationToken, validFor });
+    } catch (error) {
+      return handleError(error, response);
     }
-    return response
-      .status(200)
-      .json({ currentToken: device.registrationToken, validFor });
   }
 
   /**
@@ -78,19 +83,7 @@ export default class RegistrationTokensController {
         message: `Token ${shouldRemoveToken ? "removed" : "updated"} successfully`,
       });
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return response.status(400).json({
-          message: "Invalid input",
-          error: error.message,
-        });
-      }
-
-      assert(error instanceof Error);
-      logger.error("Failed to update registration token", error);
-      return response.status(500).json({
-        message: "Server error",
-        error: error.message,
-      });
+      return handleError(error, response);
     }
   }
 }

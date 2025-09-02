@@ -1,10 +1,10 @@
-import assert from "node:assert";
 import { z } from "zod";
 
 import type { HttpContext } from "@adonisjs/core/http";
+import db from "@adonisjs/lucid/services/db";
 
+import { handleError } from "#exceptions/handler";
 import Device from "#models/device";
-import Meal from "#models/meal";
 
 const SubscriptionToggleSchema = z.object({
   deviceKey: z.string().min(1),
@@ -16,6 +16,10 @@ interface RawSubscriptionToggleInput {
   deviceKey: unknown;
   mealId: unknown;
   subscribe: unknown;
+}
+
+interface PgResult {
+  rowCount: number;
 }
 
 const deviceKeySchema = z.string().min(1, "deviceKey param is required");
@@ -39,46 +43,33 @@ export default class SubscriptionsController {
         mealId: raw.mealId,
         subscribe: raw.subscribe,
       });
-
       const { deviceKey, mealId, subscribe } = parsed;
 
-      const device = await Device.query()
-        .where("deviceKey", deviceKey)
-        .preload("meals")
-        .firstOrFail();
-
-      const meal = await Meal.findOrFail(mealId);
-      const existingMealIndex = device.meals.indexOf(meal);
       if (subscribe) {
-        const res = response.status(200);
-        if (existingMealIndex !== -1) {
-          return res.json({ message: "Already subscribed" });
+        const res: PgResult = await db.rawQuery(
+          "INSERT INTO subscriptions (device_key, meal_id, created_at) VALUES (?, ?, NOW()) ON CONFLICT DO NOTHING",
+          [deviceKey, mealId],
+          { mode: "write" },
+        );
+        if (res.rowCount === 0) {
+          return response.ok({ message: "Already subscribed" });
+        } else {
+          return response.ok({ message: "Subscribed" });
         }
-        device.meals.push(meal);
-        await device.save();
-        return res.json({ message: "Subscribed" });
       } else {
-        const res = response.status(200);
-        if (existingMealIndex !== -1) {
-          device.meals.splice(existingMealIndex, 1);
-          await device.save();
-          return res.json({ message: "Unsubscribed" });
+        const res: PgResult = await db.rawQuery(
+          "DELETE FROM subscriptions WHERE device_key = ? AND meal_id = ?",
+          [deviceKey, mealId],
+          { mode: "write" },
+        );
+        if (res.rowCount === 0) {
+          return response.ok({ message: "Was not subscribed" });
+        } else {
+          return response.ok({ message: "Unsubscribed" });
         }
-        return res.json({ message: "Was not subscribed to this meal" });
       }
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return response.status(400).json({
-          message: "Invalid input",
-          error: error.message,
-        });
-      }
-
-      assert(error instanceof Error);
-      return response.status(500).json({
-        message: "Server error",
-        error: error.message,
-      });
+      return handleError(error, response);
     }
   }
 
@@ -95,15 +86,11 @@ export default class SubscriptionsController {
         .preload("meals")
         .firstOrFail();
 
-      return response.status(200).json({
+      return response.ok({
         subscriptions: device.meals,
       });
     } catch (error) {
-      assert(error instanceof Error);
-      return response.status(500).json({
-        message: "Failed to list subscriptions",
-        error: error.message,
-      });
+      return handleError(error, response);
     }
   }
 }

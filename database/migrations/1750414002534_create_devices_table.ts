@@ -9,8 +9,8 @@ export default class extends BaseSchema {
       table.text("registration_token").nullable();
       table.timestamp("token_timestamp").nullable();
 
-      table.timestamp("created_at");
-      table.timestamp("updated_at");
+      table.timestamp("created_at").notNullable();
+      table.timestamp("updated_at").notNullable();
     });
   }
 

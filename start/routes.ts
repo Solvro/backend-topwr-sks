@@ -26,13 +26,13 @@ router
       RegistrationTokensController,
       "updateOrCreate",
     ]);
-    router.get("/device/registration-token/:device_key", [
+    router.get("/device/registration-token/:deviceKey", [
       RegistrationTokensController,
       "hasToken",
     ]);
 
     router.post("/subscriptions/toggle", [SubscriptionsController, "toggle"]);
-    router.get("/subscriptions/:device_key", [
+    router.get("/subscriptions/:deviceKey", [
       SubscriptionsController,
       "listForDevice",
     ]);
