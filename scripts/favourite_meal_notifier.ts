@@ -2,8 +2,9 @@ import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 
 import logger from "@adonisjs/core/services/logger";
+import db from "@adonisjs/lucid/services/db";
 
-import Device, { getTokenExpirationTime } from "#models/device";
+import Device, { TOKEN_EXPIRATION_TIME_MS } from "#models/device";
 import Meal from "#models/meal";
 
 interface FBMessage {
@@ -18,25 +19,35 @@ interface FBDebugMessage {
   deviceKey: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
+interface clean_tokens_and_fetch_valid_ReturnValue {
+  device_key: string;
+  registration_token: string;
+}
+
 export async function notifyFavouriteMeal(mealId: number) {
   logger.info(`Processing subscriptions for meal_id=${mealId}...`);
   // Initialize
-  let targetMeal;
+  let validTokens: clean_tokens_and_fetch_valid_ReturnValue[] = [];
   try {
     // Boot the database
     if (!Device.booted) {
       Device.boot();
+    }
+    if (!Meal.booted) {
+      Meal.boot();
     }
     Device.$relationsDefinitions.forEach((relation) => {
       if (relation.relatedModel() === Device && !relation.booted) {
         relation.boot();
       }
     });
-    // Query subscriptions for the meal
-    targetMeal = await Meal.query()
-      .where("id", mealId)
-      .preload("devices")
-      .firstOrFail();
+    // Prepare valid messages
+    validTokens = await db.rawQuery(
+      "SELECT clean_tokens_and_fetch_valid(?, ?)",
+      [mealId, TOKEN_EXPIRATION_TIME_MS],
+      { mode: "write" },
+    );
   } catch (error) {
     logger.error(
       "Failed to initialize database. Exiting early. Error: ",
@@ -44,50 +55,28 @@ export async function notifyFavouriteMeal(mealId: number) {
     );
     return;
   }
+  if (validTokens.length === 0) {
+    logger.info("No registration tokens found. Exiting early.");
+    return;
+  }
+  logger.info(`Found ${validTokens.length} subscribed device(s)`);
+  // Map tokens to messages
+  const mealIdString = mealId.toString();
+  const validMessages: FBDebugMessage[] = validTokens.map((token) => {
+    return {
+      deviceKey: token.device_key,
+      message: {
+        token: token.registration_token,
+        data: {
+          mealId: mealIdString,
+        },
+      },
+    };
+  });
   // Active tokens
   const tokensToRefresh = new Set<string>();
   // Expired/Invalid tokens
   const tokensToDelete = new Set<string>();
-  // Prepare valid messages
-  const mealIdString = mealId.toString();
-  const now = Date.now();
-  const validMessages: FBDebugMessage[] = targetMeal.devices
-    .filter((sub) => {
-      if (sub.registrationToken === null) {
-        // No token - skip
-        return false;
-      }
-      const tokenTimestamp = sub.tokenTimestamp?.toMillis();
-      if (
-        tokenTimestamp !== undefined &&
-        getTokenExpirationTime(tokenTimestamp, now) <= 0
-      ) {
-        // Expired token
-        tokensToDelete.add(sub.deviceKey);
-        return false;
-      }
-      // Token is not expired or we don't know about the expiry
-      return true;
-    })
-    .map((sub): FBDebugMessage => {
-      tokensToRefresh.add(sub.deviceKey);
-      return {
-        deviceKey: sub.deviceKey,
-        message: {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          token: sub.registrationToken!,
-          data: {
-            mealId: mealIdString,
-          },
-        },
-      };
-    });
-
-  if (validMessages.length === 0) {
-    logger.info("No registration tokens found. Exiting early.");
-    return;
-  }
-  logger.info(`Found ${validMessages.length} subscribed device(s)`);
   // Init FB
   try {
     if (!getApps().length) {
@@ -109,6 +98,7 @@ export async function notifyFavouriteMeal(mealId: number) {
   for (const message of validMessages) {
     try {
       await messagingService.send(message.message);
+      tokensToRefresh.add(message.deviceKey); // Token state was refresh in FB, so it should be refreshed on our end
       logger.debug(`Device ${message.deviceKey}: Success`);
       successCount++;
     } catch (error) {
@@ -119,14 +109,12 @@ export async function notifyFavouriteMeal(mealId: number) {
           `Device ${message.deviceKey}: Failure - Token expired or not registered in FB`,
         );
         tokensToDelete.add(message.deviceKey);
-        tokensToRefresh.delete(message.deviceKey);
       } else if (fbError.code === "messaging/invalid-argument") {
         // Token is not valid because it is simply not - not due to expiry
         logger.debug(
           `Device ${message.deviceKey}: Failure - Token is not valid`,
         );
         tokensToDelete.add(message.deviceKey);
-        tokensToRefresh.delete(message.deviceKey);
       } else {
         // Error not related to the token itself
         logger.warn(

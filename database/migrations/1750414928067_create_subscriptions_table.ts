@@ -8,19 +8,19 @@ export default class extends BaseSchema {
       table
         .bigInteger("meal_id")
         .unsigned()
-        .primary()
         .references("id")
         .inTable("meals")
         .onDelete("CASCADE");
       table
         .string("device_key")
         .unsigned()
-        .primary()
         .references("device_key")
         .inTable("devices")
         .onDelete("CASCADE");
 
       table.timestamp("created_at").notNullable();
+
+      table.primary(["meal_id", "device_key"]);
     });
   }
 
