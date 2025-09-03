@@ -46,6 +46,7 @@ export default class Meal extends BaseModel {
     pivotForeignKey: "meal_id",
     relatedKey: "deviceKey",
     pivotRelatedForeignKey: "device_key",
+    pivotTimestamps: true,
   })
   declare devices: ManyToMany<typeof Device>;
 }

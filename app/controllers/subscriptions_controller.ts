@@ -6,8 +6,6 @@ import db from "@adonisjs/lucid/services/db";
 import { handleError } from "#exceptions/handler";
 import Device from "#models/device";
 
-import { notifyFavouriteMeal } from "../../scripts/favourite_meal_notifier.js";
-
 const SubscriptionToggleSchema = z.object({
   deviceKey: z.string().min(1),
   mealId: z.number(),
@@ -80,7 +78,6 @@ export default class SubscriptionsController {
    * @summary Get meals the device is subscribed to
    */
   async listForDevice({ request, response }: HttpContext) {
-    await notifyFavouriteMeal(1);
     try {
       const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
 

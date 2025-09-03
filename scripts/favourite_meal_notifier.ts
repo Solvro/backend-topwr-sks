@@ -43,20 +43,14 @@ export async function notifyFavouriteMeal(mealId: number) {
       }
     });
     // Prepare valid messages
-    // This atrocity actually works correctly.
-    const queryRes: { rows: { clean_tokens_and_fetch_valid: string }[] } =
-      await db.rawQuery(
-        "SELECT clean_tokens_and_fetch_valid(?, ?)",
-        [mealId, TOKEN_EXPIRATION_TIME_MS],
-        { mode: "write" },
-      );
-    validTokens = queryRes.rows.map((row) => {
-      const result = row.clean_tokens_and_fetch_valid.slice(1, -1).split(","); // '(device_key,token)'
-      return {
-        device_key: result[0],
-        registration_token: result[1],
-      };
-    });
+    const queryRes: {
+      rows: { device_key: string; registration_token: string }[];
+    } = await db.rawQuery(
+      "SELECT * FROM clean_tokens_and_fetch_valid(?, ?)",
+      [mealId, TOKEN_EXPIRATION_TIME_MS],
+      { mode: "write" },
+    );
+    validTokens = queryRes.rows;
   } catch (error) {
     logger.error(
       "Failed to initialize database. Exiting early. Error: ",
