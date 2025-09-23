@@ -23,7 +23,6 @@ const NOTIFICATION_COOLDOWN_MS = 1000 * 60 * 60 * 24; // 24 hours
 
 export async function runScrapper() {
   const trx = await db.transaction();
-
   try {
     const html = await getMenuHTML();
     // Extract hash
@@ -46,12 +45,15 @@ export async function runScrapper() {
     // Parse the menu
     const meals = await parseMenu(html);
     // Get hashes of meals that were notified recently
-    const queryRes: number[] = await db.rawQuery(
-      "SELECT * FROM get_recent_hashes(?)",
-      [NOTIFICATION_COOLDOWN_MS],
-      { mode: "read" },
+    const queryRes: { rows: { get_recent_hashes: number[] }[] } =
+      await db.rawQuery(
+        "SELECT * FROM get_recent_hashes(?)",
+        [NOTIFICATION_COOLDOWN_MS],
+        { mode: "read" },
+      );
+    const recentlyNotifiedMealsSet = new Set<number>(
+      queryRes.rows[0].get_recent_hashes,
     );
-    const recentlyNotifiedMealsSet = new Set<number>(queryRes);
     for (const meal of meals) {
       const mealEntity = await addMealToDb(meal.name, meal.category);
       if (mealEntity === null) {
