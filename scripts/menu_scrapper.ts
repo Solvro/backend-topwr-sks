@@ -18,9 +18,6 @@ import { notifyFavouriteMeal } from "./favourite_meal_notifier.js";
 // number, then optionally "g" or "ml", then optionally "/" + number + "g" or "ml", end of string
 const SIZE_REGEX = /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?$/;
 
-// How often can a notification for a certain meal be sent
-const NOTIFICATION_COOLDOWN_MS = 1000 * 60 * 60 * 24; // 24 hours
-
 export async function runScrapper() {
   const trx = await db.transaction();
   try {
@@ -45,10 +42,11 @@ export async function runScrapper() {
     // Parse the menu
     const meals = await parseMenu(html);
     // Get hashes of meals that were notified recently
+    const dayStart = DateTime.now().startOf("day");
     const queryRes: { rows: { get_recent_hashes: number[] }[] } =
       await db.rawQuery(
         "SELECT * FROM get_recent_hashes(?)",
-        [NOTIFICATION_COOLDOWN_MS],
+        [dayStart.toMillis()],
         { mode: "read" },
       );
     const recentlyNotifiedMealsSet = new Set<number>(

@@ -4,14 +4,14 @@ export default class extends BaseSchema {
   async up() {
     this.schema.raw(`
         CREATE OR REPLACE FUNCTION get_recent_hashes(
-            period_ms BIGINT
+            date_from_ms BIGINT
         )
                 RETURNS BIGINT[]
                 LANGUAGE PLPGSQL
             AS
             '
                 DECLARE
-                    since TIMESTAMP := NOW() - (period_ms * INTERVAL ''1 millisecond'');
+                    since TIMESTAMP := TO_TIMESTAMP(date_from_ms / 1000.0);
                     result BIGINT[];
                 BEGIN
                     SELECT array_agg(meal_id)
