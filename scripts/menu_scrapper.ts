@@ -42,16 +42,7 @@ export async function runScrapper() {
     // Parse the menu
     const meals = await parseMenu(html);
     // Get hashes of meals that were notified recently
-    const dayStart = DateTime.now().startOf("day");
-    const queryRes: { rows: { get_recent_hashes: number[] }[] } =
-      await db.rawQuery(
-        "SELECT * FROM get_recent_hashes(?)",
-        [dayStart.toMillis()],
-        { mode: "read" },
-      );
-    const recentlyNotifiedMealsSet = new Set<number>(
-      queryRes.rows[0].get_recent_hashes,
-    );
+    const recentlyNotifiedMealsSet = await getRecentHashes();
     for (const meal of meals) {
       const mealEntity = await addMealToDb(meal.name, meal.category);
       if (mealEntity === null) {
@@ -85,6 +76,17 @@ export async function runScrapper() {
     await trx.rollback();
     logger.error(`Failed to update menu: ${error.message}`, error.stack);
   }
+}
+
+/**
+ * Gets the ids of the meals that have been notified since the current day began (that is, since 00:00:00)
+ */
+async function getRecentHashes(): Promise<Set<number>> {
+  const since = DateTime.now().startOf("day");
+  const recentHashes = await HashesMeal.query()
+    .select("meal_id")
+    .where("created_at", ">", since.toJSDate());
+  return new Set<number>(recentHashes.map((hash) => hash.mealId));
 }
 
 export async function parseMenu(html: string) {
