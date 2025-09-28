@@ -20,13 +20,12 @@ const SIZE_REGEX = /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?$/;
 
 export async function runScrapper() {
   const trx = await db.transaction();
-
   try {
     const html = await getMenuHTML();
-
+    // Extract hash
     const newHash = await getHash(html);
     const storedHash = await WebsiteHash.query().where("hash", newHash).first();
-
+    // Compare to existing
     if (storedHash !== null) {
       await storedHash.merge({ updatedAt: DateTime.now() }).save();
       logger.info(
@@ -35,31 +34,40 @@ export async function runScrapper() {
       await trx.commit();
       return;
     }
-
+    // Create the new hash
     const newWebsiteHash = await WebsiteHash.create(
       { hash: newHash },
       { client: trx },
     );
-
+    // Parse the menu
     const meals = await parseMenu(html);
-
+    // Get hashes of meals that were notified recently
+    const recentlyNotifiedMealsSet = await getRecentHashes();
     for (const meal of meals) {
-      const newMeal = await checkIfMealExistsOrCreate(meal.name, meal.category);
-      if (newMeal !== null) {
-        await HashesMeal.create(
-          {
-            hashFk: newWebsiteHash.hash,
-            mealId: newMeal.id,
-            size: meal.size,
-            price: meal.price,
-          },
-          { client: trx },
-        );
-        logger.debug(
-          `${meal.name} added as ${newWebsiteHash.hash} connection.`,
-        );
-        await notifyFavouriteMeal(newMeal.id);
+      const mealEntity = await addMealToDb(meal.name, meal.category);
+      if (mealEntity === null) {
+        continue; // Failed to add, skip
       }
+      // Add as hash entry
+      await HashesMeal.create(
+        {
+          hashFk: newWebsiteHash.hash,
+          mealId: mealEntity.id,
+          size: meal.size,
+          price: meal.price,
+        },
+        { client: trx },
+      );
+      logger.debug(`${meal.name} added as ${newWebsiteHash.hash} connection.`);
+      // Check if meal was notified recently
+      if (!recentlyNotifiedMealsSet.has(mealEntity.id)) {
+        // If not, notify
+        logger.info(
+          `Meal ${meal.name} has not been notified about recently. Sending notification...`,
+        );
+        await notifyFavouriteMeal(mealEntity.id);
+      }
+      recentlyNotifiedMealsSet.add(mealEntity.id);
     }
     logger.info("Menu updated successfully.");
     await trx.commit();
@@ -68,6 +76,17 @@ export async function runScrapper() {
     await trx.rollback();
     logger.error(`Failed to update menu: ${error.message}`, error.stack);
   }
+}
+
+/**
+ * Gets the ids of the meals that have been notified since the current day began (that is, since 00:00:00)
+ */
+async function getRecentHashes(): Promise<Set<number>> {
+  const since = DateTime.now().startOf("day");
+  const recentHashes = await HashesMeal.query()
+    .select("meal_id")
+    .where("created_at", ">", since.toJSDate());
+  return new Set<number>(recentHashes.map((hash) => hash.mealId));
 }
 
 export async function parseMenu(html: string) {
@@ -150,30 +169,25 @@ function assignCategories(category: string) {
   }
 }
 
-async function checkIfMealExistsOrCreate(
+async function addMealToDb(
   name: string,
   category: MealCategory | null,
-) {
+): Promise<Meal | null> {
   try {
     let mealQuery = Meal.query().where("name", name);
-
     if (category !== null) {
       mealQuery = mealQuery.where("category", category);
     } else {
       mealQuery = mealQuery.whereNull("category");
     }
-    const mealOrNull = await mealQuery.first();
-    logger.debug(`Checking if meal ${name} exists in the database.`);
-
-    if (mealOrNull !== null) {
+    const existingMeal = await mealQuery.first();
+    if (existingMeal !== null) {
       logger.debug(`Meal ${name} already exists in the database`);
-      return mealOrNull;
+      return existingMeal;
+    } else {
+      logger.debug(`Meal ${name} does not exist in the database. Creating...`);
+      return await Meal.create({ name, category });
     }
-
-    logger.debug(
-      `Meal ${name} does not exist in the database. Creating a new meal.`,
-    );
-    return await Meal.create({ name, category });
   } catch (error) {
     assert(error instanceof Error);
     logger.error(
