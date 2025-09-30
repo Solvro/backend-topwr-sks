@@ -1,7 +1,9 @@
 import { DateTime } from "luxon";
 
-import { BaseModel, column, hasMany } from "@adonisjs/lucid/orm";
-import type { HasMany } from "@adonisjs/lucid/types/relations";
+import { BaseModel, column, hasMany, manyToMany } from "@adonisjs/lucid/orm";
+import type { HasMany, ManyToMany } from "@adonisjs/lucid/types/relations";
+
+import Device from "#models/device";
 
 import HashesMeal from "./hashes_meal.js";
 
@@ -37,4 +39,14 @@ export default class Meal extends BaseModel {
 
   @hasMany(() => HashesMeal)
   declare hashes: HasMany<typeof HashesMeal>;
+
+  @manyToMany(() => Device, {
+    pivotTable: "subscriptions",
+    localKey: "id",
+    pivotForeignKey: "meal_id",
+    relatedKey: "deviceKey",
+    pivotRelatedForeignKey: "device_key",
+    pivotTimestamps: true,
+  })
+  declare devices: ManyToMany<typeof Device>;
 }

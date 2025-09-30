@@ -3,6 +3,8 @@ node_modules
 build
 tmp
 
+firebase_service_account_key.json
+
 # Secrets
 .env
 .env.local

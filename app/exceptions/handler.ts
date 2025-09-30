@@ -1,4 +1,6 @@
-import { ExceptionHandler, HttpContext } from "@adonisjs/core/http";
+import { z } from "zod";
+
+import { ExceptionHandler, HttpContext, Response } from "@adonisjs/core/http";
 import app from "@adonisjs/core/services/app";
 
 export default class HttpExceptionHandler extends ExceptionHandler {
@@ -25,4 +27,17 @@ export default class HttpExceptionHandler extends ExceptionHandler {
   async report(error: unknown, ctx: HttpContext) {
     return super.report(error, ctx);
   }
+}
+
+export function handleError(error: unknown, response: Response) {
+  if (error instanceof z.ZodError) {
+    return response.badRequest({
+      message: "Invalid input",
+      error: error.message,
+    });
+  }
+  return response.internalServerError({
+    message: "Server error",
+    error: (error as Error).message,
+  });
 }
