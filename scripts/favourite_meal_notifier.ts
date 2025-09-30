@@ -19,8 +19,7 @@ interface FBDebugMessage {
   deviceKey: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-interface clean_tokens_and_fetch_valid_ReturnValue {
+interface FetchValidTokensQueryReturnValue {
   device_key: string;
   registration_token: string;
 }
@@ -28,7 +27,7 @@ interface clean_tokens_and_fetch_valid_ReturnValue {
 export async function notifyFavouriteMeal(mealId: number) {
   logger.info(`Processing subscriptions for meal_id=${mealId}...`);
   // Initialize
-  let validTokens: clean_tokens_and_fetch_valid_ReturnValue[] = [];
+  let validTokens: FetchValidTokensQueryReturnValue[] = [];
   try {
     // Boot the database
     if (!Device.booted) {
@@ -42,13 +41,27 @@ export async function notifyFavouriteMeal(mealId: number) {
         relation.boot();
       }
     });
-    // Prepare valid messages
+    // Expire old tokens
+    await db.rawQuery(
+      "UPDATE devices d SET registration_token = NULL, token_timestamp = NULL " +
+        "FROM subscriptions s WHERE d.device_key = s.device_key " +
+        "AND s.meal_id = ? " +
+        "AND d.registration_token IS NOT NULL " +
+        "AND d.token_timestamp IS NOT NULL " +
+        "AND (EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM d.token_timestamp)) * 1000 > ?;",
+      [mealId, TOKEN_EXPIRATION_TIME_MS],
+      { mode: "write" },
+    );
+    // Fetch valid tokens
     const queryRes: {
       rows: { device_key: string; registration_token: string }[];
     } = await db.rawQuery(
-      "SELECT * FROM clean_tokens_and_fetch_valid(?, ?)",
-      [mealId, TOKEN_EXPIRATION_TIME_MS],
-      { mode: "write" },
+      "SELECT d.device_key, d.registration_token FROM devices d " +
+        "JOIN subscriptions s ON d.device_key = s.device_key " +
+        "WHERE s.meal_id = ? " +
+        "AND d.registration_token IS NOT NULL;",
+      [mealId],
+      { mode: "read" },
     );
     validTokens = queryRes.rows;
   } catch (error) {
