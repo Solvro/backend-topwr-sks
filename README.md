@@ -134,7 +134,6 @@ The API is available at `sks-api.topwr.solvro.pl`. The following endpoints are a
    ```
 
 3. Set up the PostgreSQL database:
-
    - Ensure PostgreSQL is installed and running.
    - Create a new database.
    - Update the `.env` file with your PostgreSQL credentials and database name.

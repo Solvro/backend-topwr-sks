@@ -7,10 +7,10 @@ import { createHash } from "node:crypto";
 import logger from "@adonisjs/core/services/logger";
 import db from "@adonisjs/lucid/services/db";
 
-import { getMenuHTML } from "#helpers/captcha";
 import HashesMeal from "#models/hashes_meal";
 import Meal, { MealCategory } from "#models/meal";
 import WebsiteHash from "#models/website_hash";
+import Env from "#start/env";
 
 import { notifyFavouriteMeal } from "./favourite_meal_notifier.js";
 
@@ -18,10 +18,20 @@ import { notifyFavouriteMeal } from "./favourite_meal_notifier.js";
 // number, then optionally "g" or "ml", then optionally "/" + number + "g" or "ml", end of string
 const SIZE_REGEX = /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?$/;
 
+async function getMenuHTMLOrFail() {
+  const response = await fetch(Env.get("MENU_URL"));
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch menu data: ${response.status} - ${response.statusText}`,
+    );
+  }
+  return await response.text();
+}
+
 export async function runScrapper() {
   const trx = await db.transaction();
   try {
-    const html = await getMenuHTML();
+    const html = await getMenuHTMLOrFail();
     // Extract hash
     const newHash = await getHash(html);
     const storedHash = await WebsiteHash.query().where("hash", newHash).first();

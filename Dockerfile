@@ -2,10 +2,6 @@
 FROM node:20-bullseye-slim AS base
 
 RUN apt-get update && apt-get install -y \
-    chromium \
-    chromium-driver \
-    xvfb \
-    procps \
     curl \
     wget \
     && rm -rf /var/lib/apt/lists/*
@@ -36,7 +32,6 @@ WORKDIR /app
 # Copy docs
 COPY --from=build /app/build /app
 
-# proxy port
 EXPOSE 8080
 
 # Set CMD to run the wrapper script
