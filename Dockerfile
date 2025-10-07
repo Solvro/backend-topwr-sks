@@ -2,8 +2,6 @@
 FROM node:20-bullseye-slim AS base
 
 RUN apt-get update && apt-get install -y \
-    xvfb \
-    procps \
     curl \
     wget \
     && rm -rf /var/lib/apt/lists/*
