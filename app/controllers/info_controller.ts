@@ -10,12 +10,12 @@ export default class InfoController {
     return {
       openingHours: {
         canteen: {
-          openingTime: "pon.-czw. 7:30",
-          closingTime: "18:00, pt. 7:30 - 16:00",
-        },
-        cafe: {
           openingTime: "pon.-czw. 10:30",
           closingTime: "17:00, pt. 10:30 - 16:00",
+        },
+        cafe: {
+          openingTime: "pon.-czw. 7:30",
+          closingTime: "18:00, pt. 7:30 - 16:00",
         },
       },
     };
