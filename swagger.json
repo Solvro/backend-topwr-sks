@@ -97,6 +97,40 @@
           }
         }
       },
+      "Device": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "device_key": {
+            "type": "string",
+            "example": "Lorem Ipsum"
+          },
+          "registration_token": {
+            "type": "string",
+            "example": "Lorem Ipsum"
+          },
+          "token_timestamp": {
+            "$ref": "#/components/schemas/DateTime<true>",
+            "example": null
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/DateTime<true>",
+            "example": null
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/DateTime<true>",
+            "example": null
+          },
+          "meals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Meal",
+              "example": null
+            }
+          }
+        },
+        "description": "Device (Model)"
+      },
       "HashesMeal": {
         "type": "object",
         "required": [],
@@ -107,7 +141,7 @@
           },
           "meal_id": {
             "type": "number",
-            "example": 398
+            "example": 83
           },
           "size": {
             "type": "string",
@@ -131,7 +165,7 @@
         "properties": {
           "id": {
             "type": "number",
-            "example": 151
+            "example": 114
           },
           "name": {
             "type": "string",
@@ -155,6 +189,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/HashesMeal",
+              "example": null
+            }
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Device",
               "example": null
             }
           }
@@ -314,8 +355,8 @@
             "name": "search",
             "description": "Filter results by meal name",
             "schema": {
-              "type": "string",
-              "example": "frytki"
+              "example": "",
+              "type": "string"
             },
             "required": false
           }
@@ -328,16 +369,16 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Meal"
+                    "type": "object"
                   }
                 },
                 "example": [
                   {
-                    "id": 151,
-                    "name": "Frytki z batatow",
-                    "category": "SIDE_DISH",
-                    "created_at": "2025-10-07T11:30:00.000Z",
-                    "updated_at": "2025-10-07T11:30:00.000Z"
+                    "id": "number",
+                    "name": "string",
+                    "category": "SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO",
+                    "createdAt": "timestamp",
+                    "updatedAt": "timestamp"
                   }
                 ]
               }
@@ -355,8 +396,8 @@
                   }
                 },
                 "example": {
-                  "message": "Failed to fetch meals",
-                  "error": "Some error message"
+                  "message": "string",
+                  "error": "string"
                 }
               }
             },
@@ -561,10 +602,249 @@
     },
     "/api/v1/info": {
       "get": {
-        "summary": " (openingHours)",
-        "description": "\n\n _app/controllers/info_controller.ts_ - **openingHours**",
+        "summary": "Get opening hours for canteen and cafe (openingHours)",
+        "description": "Returns **200** (OK) as **application/json**\n\n _app/controllers/info_controller.ts_ - **openingHours**",
         "parameters": [],
         "tags": ["INFO"],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "openingHours": {
+                      "type": "object",
+                      "properties": {
+                        "canteen": {
+                          "type": "object",
+                          "properties": {
+                            "openingTime": "string",
+                            "closingTime": "string"
+                          }
+                        },
+                        "cafe": {
+                          "type": "object",
+                          "properties": {
+                            "openingTime": "string",
+                            "closingTime": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "openingHours": {
+                    "canteen": {
+                      "openingTime": "string",
+                      "closingTime": "string"
+                    },
+                    "cafe": {
+                      "openingTime": "string",
+                      "closingTime": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Returns **200** (OK) as **application/json**"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": "string",
+                    "error": "string"
+                  }
+                },
+                "example": {
+                  "message": "string",
+                  "error": "string"
+                }
+              }
+            },
+            "description": "Returns **500** (Internal Server Error) as **application/json**"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/device/registration-token": {
+      "put": {
+        "summary": " (updateOrCreate)",
+        "description": "\n\n _app/controllers/registration_tokens_controller.ts_ - **updateOrCreate**",
+        "parameters": [],
+        "tags": ["DEVICE"],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "content": {
+              "application/json": {}
+            }
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "content": {
+            "application/json": {}
+          }
+        }
+      }
+    },
+    "/api/v1/device/registration-token/{deviceKey}": {
+      "get": {
+        "summary": "Checks if the device has a token registered to it and if so, for how long will it be valid (in ms) (hasToken)",
+        "description": "Returns **200** (OK) as **application/json**\n\n _app/controllers/registration_tokens_controller.ts_ - **hasToken**",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceKey",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["DEVICE"],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "currentToken": "string|null",
+                    "validFor": "number|null"
+                  }
+                },
+                "example": {
+                  "currentToken": "string|null",
+                  "validFor": "number|null"
+                }
+              }
+            },
+            "description": "Returns **200** (OK) as **application/json**"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": "string"
+                  }
+                },
+                "example": {
+                  "error": "string"
+                }
+              }
+            },
+            "description": "Returns **400** (Bad Request) as **application/json**"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/v1/subscriptions/toggle": {
+      "post": {
+        "summary": "Toggle subscription (toggle)",
+        "description": "Subscribes or unsubscribe for a meal - Get a notification if the meal is currently on the menu.\n\n _app/controllers/subscriptions_controller.ts_ - **toggle**",
+        "parameters": [],
+        "tags": ["SUBSCRIPTIONS"],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": "string"
+                  }
+                },
+                "example": {
+                  "message": "string"
+                }
+              }
+            },
+            "description": "Returns **200** (OK) as **application/json**"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": "string",
+                    "error": "string"
+                  }
+                },
+                "example": {
+                  "message": "string",
+                  "error": "string"
+                }
+              }
+            },
+            "description": "Returns **400** (Bad Request) as **application/json**"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": "string",
+                    "error": "string"
+                  }
+                },
+                "example": {
+                  "message": "string",
+                  "error": "string"
+                }
+              }
+            },
+            "description": "Returns **500** (Internal Server Error) as **application/json**"
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "device_key": "string",
+                  "meal_id": "integer",
+                  "subscribe": "boolean"
+                }
+              },
+              "example": {
+                "device_key": "string",
+                "meal_id": "integer",
+                "subscribe": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/{deviceKey}": {
+      "get": {
+        "summary": " (listForDevice)",
+        "description": "\n\n _app/controllers/subscriptions_controller.ts_ - **listForDevice**",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceKey",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": ["SUBSCRIPTIONS"],
         "responses": {
           "200": {
             "description": "OK",
@@ -592,6 +872,23 @@
         },
         "security": []
       }
+    },
+    "/metrics": {
+      "get": {
+        "summary": " (emitMetrics)",
+        "description": "\n\n _/Users/czaja/WebstormProjects/backend-topwr-sks/config/../app/@solvro/solvronis-metrics.ts_ - **emitMetrics**",
+        "parameters": [],
+        "tags": [""],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {}
+            }
+          }
+        },
+        "security": []
+      }
     }
   },
   "tags": [
@@ -606,6 +903,14 @@
     {
       "name": "INFO",
       "description": "Everything related to INFO"
+    },
+    {
+      "name": "DEVICE",
+      "description": "Everything related to DEVICE"
+    },
+    {
+      "name": "SUBSCRIPTIONS",
+      "description": "Everything related to SUBSCRIPTIONS"
     },
     {
       "name": "HEALTHCHECK",
