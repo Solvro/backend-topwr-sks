@@ -221,6 +221,48 @@ paths:
                 error: "string"
           description: "Returns **500** (Internal Server Error) as **application/json**"
       security: []
+  /api/v1/meals/recent:
+    get:
+      summary: "Get distinct meals from the last 7 days (recent)"
+      description: "Returns **200** (OK) as **application/json**\n\n _app/controllers/meals_controller.ts_ - **recent**"
+      parameters:
+        - in: "query"
+          name: "search"
+          description: "Filter results by meal name"
+          schema:
+            type: "string"
+            example: "frytki"
+          required: false
+      tags:
+        - "MEALS"
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Meal"
+              example:
+                - id: 151
+                  name: "Frytki z batatow"
+                  category: "SIDE_DISH"
+                  created_at: "2025-10-07T11:30:00.000Z"
+                  updated_at: "2025-10-07T11:30:00.000Z"
+          description: "Returns **200** (OK) as **application/json**"
+        500:
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  message: "string"
+                  error: "string"
+              example:
+                message: "Failed to fetch meals"
+                error: "Some error message"
+          description: "Returns **500** (Internal Server Error) as **application/json**"
+      security: []
   /api/v1/meals/current:
     get:
       summary: "Get current menu items and online status (current)"

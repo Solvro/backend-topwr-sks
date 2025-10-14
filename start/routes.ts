@@ -15,6 +15,7 @@ const SubscriptionsController = () =>
 router
   .group(() => {
     router.get("/meals", [MealsController, "index"]);
+    router.get("/meals/recent", [MealsController, "recent"]);
     router.get("/meals/current", [MealsController, "current"]);
 
     router.get("/sks-users/current", [SksUsersController, "latest"]);

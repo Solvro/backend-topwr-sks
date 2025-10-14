@@ -7,6 +7,7 @@ import logger from "@adonisjs/core/services/logger";
 import db from "@adonisjs/lucid/services/db";
 
 import HashesMeal from "#models/hashes_meal";
+import Meal from "#models/meal";
 import WebsiteHash from "#models/website_hash";
 
 const firstHashWithMealsRawSchema = z.object({
@@ -18,6 +19,12 @@ const firstHashWithMealsRawSchema = z.object({
     )
     .nonempty(),
 });
+
+const distinctMealIdsSchema = z.array(
+  z.object({
+    meal_id: z.coerce.number(),
+  }),
+);
 
 export default class MealsController {
   /**
@@ -120,6 +127,55 @@ export default class MealsController {
       );
 
       return response.status(200).json(meals);
+    } catch (error) {
+      assert(error instanceof Error);
+      return response
+        .status(500)
+        .json({ message: "Failed to fetch meals", error: error.message });
+    }
+  }
+
+  /**
+   * @recent
+   * @summary Get distinct meals from the last 7 days
+   * @description Returns unique meals that appeared on the menu over the previous 7 days. Supports optional case-insensitive name filtering.
+   * @paramQuery search - Filter results by meal name - @type(string)
+   * @responseBody 200 - [{"id":"number","name":"string","category":"SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO","createdAt":"timestamp","updatedAt":"timestamp"}]
+   * @responseBody 500 - {"message":"string","error":"string"}
+   */
+  async recent({ request, response }: HttpContext) {
+    try {
+      const rawSearch = (request.input("search", "") as string).trim();
+      const sevenDaysAgo = DateTime.now().minus({ days: 7 }).toJSDate();
+
+      const mealIdRows = distinctMealIdsSchema.parse(
+        await db
+          .from("hashes_meals")
+          .innerJoin(
+            "website_hashes",
+            "hashes_meals.hash_fk",
+            "website_hashes.hash",
+          )
+          .innerJoin("meals", "hashes_meals.meal_id", "meals.id")
+          .where("website_hashes.updated_at", ">=", sevenDaysAgo)
+          .if(rawSearch !== "", (query) => {
+            void query.whereILike("meals.name", `%${rawSearch}%`);
+          })
+          .select("hashes_meals.meal_id as meal_id")
+          .distinct(),
+      );
+
+      const mealIds = mealIdRows.map((row) => row.meal_id);
+
+      if (mealIds.length === 0) {
+        return response.status(200).json([]);
+      }
+
+      const meals = await Meal.query()
+        .whereIn("id", mealIds)
+        .orderBy("name", "asc");
+
+      return response.status(200).json(meals.map((meal) => meal.serialize()));
     } catch (error) {
       assert(error instanceof Error);
       return response
