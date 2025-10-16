@@ -84,7 +84,13 @@ export default class SubscriptionsController {
       const device = await Device.query()
         .where("deviceKey", deviceKey)
         .preload("meals")
-        .firstOrFail();
+        .first();
+
+      if (device === null) {
+        return response.ok({
+          subscriptions: [],
+        });
+      }
 
       return response.ok({
         subscriptions: device.meals,

@@ -141,7 +141,7 @@
           },
           "meal_id": {
             "type": "number",
-            "example": 83
+            "example": 694
           },
           "size": {
             "type": "string",
@@ -165,7 +165,7 @@
         "properties": {
           "id": {
             "type": "number",
-            "example": 114
+            "example": 396
           },
           "name": {
             "type": "string",
@@ -367,20 +367,36 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "meals": {
+                      "type": "object",
+                      "properties": {
+                        "0": {
+                          "type": "object",
+                          "properties": {
+                            "id": "number",
+                            "name": "string",
+                            "category": "SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO",
+                            "createdAt": "timestamp",
+                            "updatedAt": "timestamp"
+                          }
+                        }
+                      }
+                    }
                   }
                 },
-                "example": [
-                  {
-                    "id": "number",
-                    "name": "string",
-                    "category": "SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO",
-                    "createdAt": "timestamp",
-                    "updatedAt": "timestamp"
-                  }
-                ]
+                "example": {
+                  "meals": [
+                    {
+                      "id": "number",
+                      "name": "string",
+                      "category": "SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO",
+                      "createdAt": "timestamp",
+                      "updatedAt": "timestamp"
+                    }
+                  ]
+                }
               }
             },
             "description": "Returns **200** (OK) as **application/json**"

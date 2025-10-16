@@ -106,7 +106,7 @@ components:
           example: "80845fe1a68deadbb4febc3f6dbae98b64a3df7a1648edd417a8ece3164182f4"
         meal_id:
           type: "number"
-          example: 83
+          example: 694
         size:
           type: "string"
           example: "200g/10g"
@@ -124,7 +124,7 @@ components:
       properties:
         id:
           type: "number"
-          example: 114
+          example: 396
         name:
           type: "string"
           example: "Frytki z batatów"
@@ -270,15 +270,26 @@ paths:
           content:
             application/json:
               schema:
-                type: "array"
-                items:
-                  type: "object"
+                type: "object"
+                properties:
+                  meals:
+                    type: "object"
+                    properties:
+                      0:
+                        type: "object"
+                        properties:
+                          id: "number"
+                          name: "string"
+                          category: "SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO"
+                          createdAt: "timestamp"
+                          updatedAt: "timestamp"
               example:
-                - id: "number"
-                  name: "string"
-                  category: "SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO"
-                  createdAt: "timestamp"
-                  updatedAt: "timestamp"
+                meals:
+                  - id: "number"
+                    name: "string"
+                    category: "SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO"
+                    createdAt: "timestamp"
+                    updatedAt: "timestamp"
           description: "Returns **200** (OK) as **application/json**"
         500:
           content:

@@ -140,7 +140,7 @@ export default class MealsController {
    * @summary Get distinct meals from the last 7 days
    * @description Returns unique meals that appeared on the menu over the previous 7 days. Supports optional case-insensitive name filtering.
    * @paramQuery search - Filter results by meal name - @type(string)
-   * @responseBody 200 - [{"id":"number","name":"string","category":"SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO","createdAt":"timestamp","updatedAt":"timestamp"}]
+   * @responseBody 200 - {"meals":[{"id":"number","name":"string","category":"SALAD|SOUP|VEGETARIAN_DISH|MEAT_DISH|DESSERT|SIDE_DISH|DRINK|TECHNICAL_INFO","createdAt":"timestamp","updatedAt":"timestamp"}]}
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async recent({ request, response }: HttpContext) {
@@ -168,14 +168,16 @@ export default class MealsController {
       const mealIds = mealIdRows.map((row) => row.meal_id);
 
       if (mealIds.length === 0) {
-        return response.status(200).json([]);
+        return response.status(200).json({ meals: [] });
       }
 
       const meals = await Meal.query()
         .whereIn("id", mealIds)
         .orderBy("name", "asc");
 
-      return response.status(200).json(meals.map((meal) => meal.serialize()));
+      return response
+        .status(200)
+        .json({ meals: meals.map((meal) => meal.serialize()) });
     } catch (error) {
       assert(error instanceof Error);
       return response
