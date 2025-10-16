@@ -106,7 +106,7 @@ components:
           example: "80845fe1a68deadbb4febc3f6dbae98b64a3df7a1648edd417a8ece3164182f4"
         meal_id:
           type: "number"
-          example: 694
+          example: 685
         size:
           type: "string"
           example: "200g/10g"
@@ -124,7 +124,7 @@ components:
       properties:
         id:
           type: "number"
-          example: 396
+          example: 744
         name:
           type: "string"
           example: "Frytki z batatów"
@@ -492,20 +492,58 @@ paths:
       security: []
   /api/v1/device/registration-token:
     put:
-      summary: " (updateOrCreate)"
-      description: "\n\n _app/controllers/registration_tokens_controller.ts_ - **updateOrCreate**"
+      summary: "Register or update FCM registration token. If new token is null, removes the current token (updateOrCreate)"
+      description: "Stores or updates the registration token for a device.\n\n _app/controllers/registration_tokens_controller.ts_ - **updateOrCreate**"
       parameters: []
       tags:
         - "DEVICE"
       responses:
-        204:
-          description: "No Content"
+        200:
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  message: "string"
+              example:
+                message: "string"
+          description: "Returns **200** (OK) as **application/json**"
+        400:
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  message: "string"
+                  error: "string"
+              example:
+                message: "string"
+                error: "string"
+          description: "Returns **400** (Bad Request) as **application/json**"
+        500:
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  message: "string"
+                  error: "string"
+              example:
+                message: "string"
+                error: "string"
+          description: "Returns **500** (Internal Server Error) as **application/json**"
       security: []
       requestBody:
         content:
-          application/json: {}
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                deviceKey: "string"
+                registrationToken: "string|null"
+            example:
+              deviceKey: "string"
+              registrationToken: "string|null"
   /api/v1/device/registration-token/{deviceKey}:
     get:
       summary: "Checks if the device has a token registered to it and if so, for how long will it be valid (in ms) (hasToken)"
@@ -591,12 +629,12 @@ paths:
             schema:
               type: "object"
               properties:
-                device_key: "string"
-                meal_id: "integer"
+                deviceKey: "string"
+                mealId: "integer"
                 subscribe: "boolean"
             example:
-              device_key: "string"
-              meal_id: "integer"
+              deviceKey: "string"
+              mealId: "integer"
               subscribe: "boolean"
   /api/v1/subscriptions/{deviceKey}:
     get:

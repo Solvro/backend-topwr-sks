@@ -52,10 +52,10 @@ export default class RegistrationTokensController {
   }
 
   /**
-   * @update
-   * @summary Register or update FCM registration token. If new token is null, removes the current token/
+   * @updateOrCreate
+   * @summary Register or update FCM registration token. If new token is null, removes the current token
    * @description Stores or updates the registration token for a device.
-   * @requestBody {"device_key":"string", "registration_token":"string"}
+   * @requestBody {"deviceKey":"string","registrationToken":"string|null"}
    * @responseBody 200 - {"message":"string"}
    * @responseBody 400 - {"message":"string","error":"string"}
    * @responseBody 500 - {"message":"string","error":"string"}

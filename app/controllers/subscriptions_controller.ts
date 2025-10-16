@@ -29,7 +29,7 @@ export default class SubscriptionsController {
    * @toggle
    * @summary Toggle subscription
    * @description Subscribes or unsubscribe for a meal - Get a notification if the meal is currently on the menu.
-   * @requestBody {"device_key":"string","meal_id":"integer","subscribe":"boolean"}
+   * @requestBody {"deviceKey":"string","mealId":"integer","subscribe":"boolean"}
    * @responseBody 200 - {"message":"string"}
    * @responseBody 400 - {"message":"string","error":"string"}
    * @responseBody 500 - {"message":"string","error":"string"}
