@@ -93,7 +93,7 @@ export default class SubscriptionsController {
       }
 
       return response.ok({
-        subscriptions: device.meals,
+        meals: device.meals,
       });
     } catch (error) {
       return handleError(error, response);
