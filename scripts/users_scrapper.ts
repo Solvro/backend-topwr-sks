@@ -9,8 +9,15 @@ import env from "#start/env";
 const url = env.get("USERS_URL");
 
 export async function runScrapper() {
+  const originalTlsRejectUnauthorized =
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED;
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
   try {
     const response = await fetch(url);
+
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = originalTlsRejectUnauthorized;
+
     if (!response.ok) {
       logger.error(
         `Failed to fetch data: ${response.status} ${response.statusText}`,
