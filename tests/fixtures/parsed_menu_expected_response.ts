@@ -36,6 +36,12 @@ export const expectedResponse = [
     category: "MEAT_DISH",
   },
   {
+    name: "Makaron penne z sosem bolońskim",
+    size: "200g/100g",
+    price: 19.5,
+    category: "MEAT_DISH",
+  },
+  {
     name: "Ryż biały na sypko",
     size: "-",
     price: 4,

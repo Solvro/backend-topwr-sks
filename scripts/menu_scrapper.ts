@@ -14,9 +14,9 @@ import Env from "#start/env";
 
 import { notifyFavouriteMeal } from "./favourite_meal_notifier.js";
 
-// this regex is barely readable
-// number, then optionally "g" or "ml", then optionally "/" + number + "g" or "ml", end of string
-const SIZE_REGEX = /\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?$/;
+// number, then optionally "g" or "ml", then optionally "/" + number + "g" or "ml",
+// then optionally "_" + digits (website variant suffix), end of string
+const SIZE_REGEX = /(\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?)(?:_\d+)?$/;
 
 async function getMenuHTMLOrFail() {
   const response = await fetch(Env.get("MENU_URL"));
@@ -138,7 +138,7 @@ export async function parseMenu(html: string) {
 
           const sizeMatch = SIZE_REGEX.exec(itemText);
           const itemSize =
-            sizeMatch !== null ? sizeMatch[0].trim().replace(" ", "") : "-";
+            sizeMatch !== null ? sizeMatch[1].trim().replace(" ", "") : "-";
           const itemName = itemText.replace(SIZE_REGEX, "").trim();
 
           return {
