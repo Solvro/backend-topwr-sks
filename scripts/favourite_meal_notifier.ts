@@ -9,6 +9,10 @@ import Meal from "#models/meal";
 
 interface FBMessage {
   token: string;
+  notification: {
+    title: string;
+    body: string;
+  };
   data: {
     mealId: string;
   };
@@ -24,7 +28,7 @@ interface FetchValidTokensQueryReturnValue {
   registration_token: string;
 }
 
-export async function notifyFavouriteMeal(mealId: number) {
+export async function notifyFavouriteMeal(mealId: number, mealName: string) {
   logger.info(`Processing subscriptions for meal_id=${mealId}...`);
   // Initialize
   let validTokens: FetchValidTokensQueryReturnValue[] = [];
@@ -83,6 +87,10 @@ export async function notifyFavouriteMeal(mealId: number) {
       deviceKey: token.device_key,
       message: {
         token: token.registration_token,
+        notification: {
+          title: "Twoje ulubione danie jest dostępne!",
+          body: mealName,
+        },
         data: {
           mealId: mealIdString,
         },
