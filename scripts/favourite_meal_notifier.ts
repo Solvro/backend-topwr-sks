@@ -15,6 +15,7 @@ interface FBMessage {
   };
   data: {
     mealId: string;
+    route: string;
   };
 }
 
@@ -93,6 +94,7 @@ export async function notifyFavouriteMeal(mealId: number, mealName: string) {
         },
         data: {
           mealId: mealIdString,
+          route: "https://topwr.solvro.pl/sks-menu",
         },
       },
     };
