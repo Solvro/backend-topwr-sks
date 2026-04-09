@@ -17,4 +17,53 @@ test.group("Menu scrapper scrape menu", () => {
     const response = await parseMenu(htmlResponse);
     assert.deepEqual(response, expectedResponse);
   });
+
+  test("should strip trailing variant suffix from size", async ({ assert }) => {
+    const htmlResponse = `
+      <div class="category">
+        <div class="cat_name"><h2>Dania jarskie</h2></div>
+        <div class="pos_group">
+          <div class="pos">
+            <ul>
+              <li>Papryka fasz. warzywami i ryżem 250g_ <span class="price">17.00</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="category">
+        <div class="cat_name"><h2>Dania mięsne</h2></div>
+        <div class="pos_group">
+          <div class="pos">
+            <ul>
+              <li>Butter chicken 200 g_ <span class="price">17.00</span></li>
+              <li>Makaron penne z sosem bolońskim 200g/100g_1 <span class="price">19.50</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const response = await parseMenu(htmlResponse);
+
+    assert.deepEqual(response, [
+      {
+        name: "Papryka fasz. warzywami i ryżem",
+        size: "250g",
+        price: 17,
+        category: "VEGETARIAN_DISH",
+      },
+      {
+        name: "Butter chicken",
+        size: "200g",
+        price: 17,
+        category: "MEAT_DISH",
+      },
+      {
+        name: "Makaron penne z sosem bolońskim",
+        size: "200g/100g",
+        price: 19.5,
+        category: "MEAT_DISH",
+      },
+    ]);
+  });
 });
