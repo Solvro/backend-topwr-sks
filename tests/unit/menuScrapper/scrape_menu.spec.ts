@@ -36,6 +36,7 @@ test.group("Menu scrapper scrape menu", () => {
           <div class="pos">
             <ul>
               <li>Butter chicken 200 g_ <span class="price">17.00</span></li>
+              <li>Kotlec drobiowy 180gr_2 <span class="price">18.00</span></li>
               <li>Makaron penne z sosem bolońskim 200g/100g_1 <span class="price">19.50</span></li>
             </ul>
           </div>
@@ -56,6 +57,12 @@ test.group("Menu scrapper scrape menu", () => {
         name: "Butter chicken",
         size: "200g",
         price: 17,
+        category: "MEAT_DISH",
+      },
+      {
+        name: "Kotlec drobiowy",
+        size: "180gr",
+        price: 18,
         category: "MEAT_DISH",
       },
       {

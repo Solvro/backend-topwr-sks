@@ -14,9 +14,10 @@ import Env from "#start/env";
 
 import { notifyFavouriteMeal } from "./favourite_meal_notifier.js";
 
-// number, then optionally "g" or "ml", then optionally "/" + number + "g" or "ml",
+// number, then optionally "g", "gr" or "ml", then optionally "/" + number + unit,
 // then optionally "_" or "_" + digits (website variant suffix), end of string
-const SIZE_REGEX = /(\d+(?:\s?(?:g|ml))?(?:\/\d+(?:\s?(?:g|ml))?)?)(?:_\d*)?$/;
+const SIZE_REGEX =
+  /(\d+(?:\s?(?:gr|g|ml))?(?:\/\d+(?:\s?(?:gr|g|ml))?)?)(?:_\d*)?$/;
 
 async function getMenuHTMLOrFail() {
   const response = await fetch(Env.get("MENU_URL"));
