@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
 import assert from "node:assert";
 
-import { HttpContext } from "@adonisjs/core/http";
+import type { HttpContext } from "@adonisjs/core/http";
 
 import SksUser from "#models/sks_user";
 
