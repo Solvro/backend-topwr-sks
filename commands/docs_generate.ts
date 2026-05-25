@@ -1,7 +1,7 @@
 import AutoSwagger from "adonis-autoswagger";
 
 import { BaseCommand } from "@adonisjs/core/ace";
-import { CommandOptions } from "@adonisjs/core/types/ace";
+import type { CommandOptions } from "@adonisjs/core/types/ace";
 
 import swagger from "#config/swagger";
 
