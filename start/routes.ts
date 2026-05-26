@@ -66,3 +66,7 @@ redirectPaths.forEach((path) => {
     return response.redirect("/api/v1/docs");
   });
 });
+
+router.get("/health", async () => {
+  return { elo: "żelo" };
+});
