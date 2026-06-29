@@ -42,7 +42,7 @@ export default class SubscriptionsController {
     });
     const { deviceKey, mealId, subscribe } = parsed;
     if (subscribe) {
-      const res: PgResult = await db
+      const res = (await db
         .rawQuery(
           "INSERT INTO subscriptions (device_key, meal_id, created_at) VALUES (?, ?, NOW()) ON CONFLICT DO NOTHING",
           [deviceKey, mealId],
@@ -51,14 +51,14 @@ export default class SubscriptionsController {
         .addErrorContext(
           () =>
             `Failed to insert subscription for deviceKey: ${deviceKey} and mealId: ${mealId}`,
-        );
+        )) as PgResult;
       if (res.rowCount === 0) {
         return response.ok({ message: "Already subscribed" });
       } else {
         return response.ok({ message: "Subscribed" });
       }
     } else {
-      const res: PgResult = await db
+      const res = (await db
         .rawQuery(
           "DELETE FROM subscriptions WHERE device_key = ? AND meal_id = ?",
           [deviceKey, mealId],
@@ -67,7 +67,7 @@ export default class SubscriptionsController {
         .addErrorContext(
           () =>
             `Failed to delete subscription for deviceKey: ${deviceKey} and mealId: ${mealId}`,
-        );
+        )) as PgResult;
       if (res.rowCount === 0) {
         return response.ok({ message: "Was not subscribed" });
       } else {
