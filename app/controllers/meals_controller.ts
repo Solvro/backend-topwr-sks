@@ -1,5 +1,4 @@
 import { DateTime } from "luxon";
-import assert from "node:assert";
 import { z } from "zod";
 
 import type { HttpContext } from "@adonisjs/core/http";
@@ -35,61 +34,58 @@ export default class MealsController {
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async current({ response }: HttpContext) {
-    try {
-      const lastHash = await WebsiteHash.query()
-        .orderBy("updatedAt", "desc")
-        .first();
-      if (lastHash === null) {
-        logger.debug("No records in the database - run scrapper");
-        return response
-          .status(200)
-          .json({ meals: [], isMenuOnline: false, lastUpdate: DateTime.now() });
-      }
-      let isMenuOnline = true;
-      let todayMeals = await getMealsByHash(lastHash.hash);
-      logger.debug(`fetched ${todayMeals.length} meals from the database}`);
-
-      if (todayMeals.length !== 0) {
-        return response.status(200).json({
-          meals: getMealsDetails(todayMeals),
-          isMenuOnline,
-          lastUpdate: lastHash.updatedAt,
-        });
-      }
-
-      isMenuOnline = false;
-      logger.debug(
-        "No meals found in the latest hash - fetching the previous one",
-      );
-
-      const firstHashWithMealsRaw = firstHashWithMealsRawSchema.parse(
-        await db.rawQuery(`
-            SELECT website_hashes.hash FROM public.website_hashes LEFT JOIN public.hashes_meals ON website_hashes.hash = hashes_meals.hash_fk
-            GROUP BY website_hashes.hash
-            HAVING COUNT(hashes_meals.*) != 0
-            ORDER BY website_hashes.updated_at DESC
-            LIMIT 1
-          `),
-      ).rows[0].hash;
-
-      const firstHashWithMeals = await WebsiteHash.query()
-        .where("hash", firstHashWithMealsRaw)
-        .firstOrFail();
-
-      todayMeals = await getMealsByHash(firstHashWithMeals.hash);
-      logger.debug(`fetched ${todayMeals.length} meals from the database}`);
-
+    const lastHash = await WebsiteHash.query()
+      .orderBy("updatedAt", "desc")
+      .first();
+    if (lastHash === null) {
+      logger.debug("No records in the database - run scrapper");
+      return response
+        .status(200)
+        .json({ meals: [], isMenuOnline: false, lastUpdate: DateTime.now() });
+    }
+    let isMenuOnline = true;
+    let todayMeals = await getMealsByHash(lastHash.hash);
+    logger.debug(`fetched ${todayMeals.length} meals from the database}`);
+    if (todayMeals.length !== 0) {
       return response.status(200).json({
         meals: getMealsDetails(todayMeals),
         isMenuOnline,
-        lastUpdate: firstHashWithMeals.updatedAt,
+        lastUpdate: lastHash.updatedAt,
       });
-    } catch (error) {
-      assert(error instanceof Error);
-      return response
-        .status(500)
-        .json({ message: "Failed to fetch meals", error: error.message });
     }
+    isMenuOnline = false;
+    logger.debug(
+      "No meals found in the latest hash - fetching the previous one",
+    );
+    const firstHashWithMealsRaw = firstHashWithMealsRawSchema.parse(
+      await db
+        .rawQuery(
+          `
+          SELECT website_hashes.hash FROM public.website_hashes LEFT JOIN public.hashes_meals ON website_hashes.hash = hashes_meals.hash_fk
+          GROUP BY website_hashes.hash
+          HAVING COUNT(hashes_meals.*) != 0
+          ORDER BY website_hashes.updated_at DESC
+          LIMIT 1
+        `,
+        )
+        .addErrorContext(
+          () => "Failed to fetch the first hash with meals from the database",
+        ),
+    ).rows[0].hash;
+    const firstHashWithMeals = await WebsiteHash.query()
+      .where("hash", firstHashWithMealsRaw)
+      .firstOrFail()
+      .addErrorContext(
+        () =>
+          `Failed to fetch the website hash record for hash ${firstHashWithMealsRaw}`,
+      );
+    todayMeals = await getMealsByHash(firstHashWithMeals.hash);
+    logger.debug(`fetched ${todayMeals.length} meals from the database}`);
+    return response.status(200).json({
+      meals: getMealsDetails(todayMeals),
+      isMenuOnline,
+      lastUpdate: firstHashWithMeals.updatedAt,
+    });
   }
 
   /**
@@ -102,37 +98,34 @@ export default class MealsController {
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async index({ request, response }: HttpContext) {
-    try {
-      const page = request.input("page", 1) as number;
-      const limit = request.input("limit", 10) as number;
+    const page = request.input("page", 1) as number;
+    const limit = request.input("limit", 10) as number;
 
-      const hashes = await HashesMeal.query()
-        .orderBy("createdAt", "desc")
-        .preload("websiteHash")
-        .paginate(page, limit);
-
-      const meals = await Promise.all(
-        hashes.map(async (hash) => ({
-          hash: hash.hashFk,
-          createdAt: hash.websiteHash.createdAt,
-          updatedAt: hash.websiteHash.updatedAt,
-          meals: await getMealsByHash(hash.hashFk).then((hashedMeals) =>
-            hashedMeals.map((singleMeal) => ({
-              ...singleMeal.meal.serialize(),
-              price: singleMeal.price,
-              size: singleMeal.size,
-            })),
-          ),
-        })),
+    const hashes = await HashesMeal.query()
+      .orderBy("createdAt", "desc")
+      .preload("websiteHash")
+      .paginate(page, limit)
+      .addErrorContext(
+        () =>
+          `Failed to fetch historical menus for page ${page} with limit ${limit}`,
       );
 
-      return response.status(200).json(meals);
-    } catch (error) {
-      assert(error instanceof Error);
-      return response
-        .status(500)
-        .json({ message: "Failed to fetch meals", error: error.message });
-    }
+    const meals = await Promise.all(
+      hashes.map(async (hash) => ({
+        hash: hash.hashFk,
+        createdAt: hash.websiteHash.createdAt,
+        updatedAt: hash.websiteHash.updatedAt,
+        meals: await getMealsByHash(hash.hashFk).then((hashedMeals) =>
+          hashedMeals.map((singleMeal) => ({
+            ...singleMeal.meal.serialize(),
+            price: singleMeal.price,
+            size: singleMeal.size,
+          })),
+        ),
+      })),
+    );
+
+    return response.status(200).json(meals);
   }
 
   /**
@@ -144,56 +137,51 @@ export default class MealsController {
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async recent({ request, response }: HttpContext) {
-    try {
-      const rawSearch = (request.input("search", "") as string).trim();
-      const sevenDaysAgo = DateTime.now().minus({ days: 7 }).toJSDate();
+    const rawSearch = (request.input("search", "") as string).trim();
+    const sevenDaysAgo = DateTime.now().minus({ days: 7 }).toJSDate();
 
-      const mealIdRows = distinctMealIdsSchema.parse(
-        await db
-          .from("hashes_meals")
-          .innerJoin(
-            "website_hashes",
-            "hashes_meals.hash_fk",
-            "website_hashes.hash",
-          )
-          .innerJoin("meals", "hashes_meals.meal_id", "meals.id")
-          .where("website_hashes.updated_at", ">=", sevenDaysAgo)
-          .if(rawSearch !== "", (query) => {
-            void query.whereILike("meals.name", `%${rawSearch}%`);
-          })
-          .select("hashes_meals.meal_id as meal_id")
-          .distinct(),
+    const mealIdRows = distinctMealIdsSchema.parse(
+      await db
+        .from("hashes_meals")
+        .innerJoin(
+          "website_hashes",
+          "hashes_meals.hash_fk",
+          "website_hashes.hash",
+        )
+        .innerJoin("meals", "hashes_meals.meal_id", "meals.id")
+        .where("website_hashes.updated_at", ">=", sevenDaysAgo)
+        .if(rawSearch !== "", (query) => {
+          void query.whereILike("meals.name", `%${rawSearch}%`);
+        })
+        .select("hashes_meals.meal_id as meal_id")
+        .distinct(),
+    );
+
+    const mealIds = mealIdRows.map((row) => row.meal_id);
+
+    if (mealIds.length === 0) {
+      return response.status(200).json({ meals: [] });
+    }
+
+    const meals = await Meal.query()
+      .whereIn("id", mealIds)
+      .orderBy("name", "asc")
+      .addErrorContext(
+        () =>
+          `Failed to fetch meals from the last 7 days with search term '${rawSearch}'`,
       );
 
-      const mealIds = mealIdRows.map((row) => row.meal_id);
-
-      if (mealIds.length === 0) {
-        return response.status(200).json({ meals: [] });
-      }
-
-      const meals = await Meal.query()
-        .whereIn("id", mealIds)
-        .orderBy("name", "asc");
-
-      return response
-        .status(200)
-        .json({ meals: meals.map((meal) => meal.serialize()) });
-    } catch (error) {
-      assert(error instanceof Error);
-      return response
-        .status(500)
-        .json({ message: "Failed to fetch meals", error: error.message });
-    }
+    return response
+      .status(200)
+      .json({ meals: meals.map((meal) => meal.serialize()) });
   }
 }
 
 async function getMealsByHash(hash: string) {
-  try {
-    return await HashesMeal.query().where("hashFk", hash).preload("meal");
-  } catch (error) {
-    logger.error(`Failed to fetch meals for hash ${hash}`, error);
-    return [];
-  }
+  return await HashesMeal.query()
+    .where("hashFk", hash)
+    .preload("meal")
+    .addErrorContext(() => `Failed to fetch meals for hash ${hash}`);
 }
 
 function getMealsDetails(todayMeals: HashesMeal[]) {

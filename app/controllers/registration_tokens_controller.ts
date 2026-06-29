@@ -3,7 +3,6 @@ import { z, null as zodNull } from "zod";
 
 import type { HttpContext } from "@adonisjs/core/http";
 
-import { handleError } from "#exceptions/handler";
 import Device, { getTokenExpirationTime } from "#models/device";
 
 const RegistrationTokenPayload = z.object({
@@ -26,29 +25,27 @@ export default class RegistrationTokensController {
    * @responseBody 400 - {"error":"string"}
    */
   async hasToken({ request, response }: HttpContext) {
-    try {
-      const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
-      const device = await Device.findByOrFail("deviceKey", deviceKey);
-      if (device.registrationToken === null) {
-        return response
-          .status(200)
-          .json({ currentToken: null, validFor: null });
+    const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
+    const device = await Device.findByOrFail(
+      "deviceKey",
+      deviceKey,
+    ).addErrorContext({
+      message: `Device with deviceKey ${deviceKey} not found`,
+      status: 404,
+      code: "E_NOT_FOUND",
+    });
+    const tokenTimestamp = device.tokenTimestamp?.toMillis();
+    const now = Date.now();
+    let validFor: number | null = null;
+    if (tokenTimestamp !== undefined) {
+      const expiration = getTokenExpirationTime(tokenTimestamp, now);
+      if (expiration > 0) {
+        validFor = expiration;
       }
-      const tokenTimestamp = device.tokenTimestamp?.toMillis();
-      const now = Date.now();
-      let validFor: number | null = null;
-      if (tokenTimestamp !== undefined) {
-        const expiration = getTokenExpirationTime(tokenTimestamp, now);
-        if (expiration > 0) {
-          validFor = expiration;
-        }
-      }
-      return response
-        .status(200)
-        .json({ currentToken: device.registrationToken, validFor });
-    } catch (error) {
-      return handleError(error, response);
     }
+    return response
+      .status(200)
+      .json({ currentToken: device.registrationToken, validFor });
   }
 
   /**
@@ -61,29 +58,30 @@ export default class RegistrationTokensController {
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async updateOrCreate({ request, response }: HttpContext) {
-    try {
-      const raw = request.body() as RegistrationTokenInput;
+    const raw = request.body() as RegistrationTokenInput;
 
-      const parsed = RegistrationTokenPayload.parse({
-        deviceKey: raw.deviceKey,
-        registrationToken: raw.registrationToken,
-      });
+    const parsed = RegistrationTokenPayload.parse({
+      deviceKey: raw.deviceKey,
+      registrationToken: raw.registrationToken,
+    });
 
-      const { deviceKey, registrationToken } = parsed;
-      const shouldRemoveToken = registrationToken === null;
-      await Device.updateOrCreate(
-        { deviceKey },
-        {
-          registrationToken,
-          tokenTimestamp: shouldRemoveToken ? null : DateTime.now(),
-        },
-      );
+    const { deviceKey, registrationToken } = parsed;
 
-      return response.status(200).json({
-        message: `Token ${shouldRemoveToken ? "removed" : "updated"} successfully`,
-      });
-    } catch (error) {
-      return handleError(error, response);
-    }
+    const shouldRemoveToken = registrationToken === null;
+
+    await Device.updateOrCreate(
+      { deviceKey },
+      {
+        registrationToken,
+        tokenTimestamp: shouldRemoveToken ? null : DateTime.now(),
+      },
+    ).addErrorContext(
+      () =>
+        `Failed to ${shouldRemoveToken ? "remove" : "update"} token for device ${deviceKey}`,
+    );
+
+    return response.status(200).json({
+      message: `Token ${shouldRemoveToken ? "removed" : "updated"} successfully`,
+    });
   }
 }
