@@ -49,8 +49,7 @@ export default class SubscriptionsController {
           { mode: "write" },
         )
         .addErrorContext(
-          () =>
-            `Failed to insert subscription for deviceKey: ${deviceKey} and mealId: ${mealId}`,
+          () => `Failed to register device for meal notifications`,
         )) as PgResult;
       if (res.rowCount === 0) {
         return response.ok({ message: "Already subscribed" });
@@ -65,8 +64,7 @@ export default class SubscriptionsController {
           { mode: "write" },
         )
         .addErrorContext(
-          () =>
-            `Failed to delete subscription for deviceKey: ${deviceKey} and mealId: ${mealId}`,
+          () => `Failed to unregister device from meal notifications`,
         )) as PgResult;
       if (res.rowCount === 0) {
         return response.ok({ message: "Was not subscribed" });
@@ -87,9 +85,7 @@ export default class SubscriptionsController {
       .where("deviceKey", deviceKey)
       .preload("meals")
       .first()
-      .addErrorContext(
-        () => `Failed to fetch device with deviceKey: ${deviceKey}`,
-      );
+      .addErrorContext(() => `Failed to fetch subscriptions for this device`);
 
     if (device === null) {
       return response.ok({

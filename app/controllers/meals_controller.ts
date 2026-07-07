@@ -36,7 +36,10 @@ export default class MealsController {
   async current({ response }: HttpContext) {
     const lastHash = await WebsiteHash.query()
       .orderBy("updatedAt", "desc")
-      .first();
+      .first()
+      .addErrorContext(
+        () => "Failed to fetch the latest menu version from the database",
+      );
     if (lastHash === null) {
       logger.debug("No records in the database - run scrapper");
       return response
@@ -140,24 +143,25 @@ export default class MealsController {
     const rawSearch = (request.input("search", "") as string).trim();
     const sevenDaysAgo = DateTime.now().minus({ days: 7 }).toJSDate();
 
-    const mealIdRows = distinctMealIdsSchema.parse(
-      await db
-        .from("hashes_meals")
-        .innerJoin(
-          "website_hashes",
-          "hashes_meals.hash_fk",
-          "website_hashes.hash",
-        )
-        .innerJoin("meals", "hashes_meals.meal_id", "meals.id")
-        .where("website_hashes.updated_at", ">=", sevenDaysAgo)
-        .if(rawSearch !== "", (query) => {
-          void query.whereILike("meals.name", `%${rawSearch}%`);
-        })
-        .select("hashes_meals.meal_id as meal_id")
-        .distinct(),
-    );
+    const mealIdRows = await db
+      .from("hashes_meals")
+      .innerJoin(
+        "website_hashes",
+        "hashes_meals.hash_fk",
+        "website_hashes.hash",
+      )
+      .innerJoin("meals", "hashes_meals.meal_id", "meals.id")
+      .where("website_hashes.updated_at", ">=", sevenDaysAgo)
+      .if(rawSearch !== "", (query) => {
+        void query.whereILike("meals.name", `%${rawSearch}%`);
+      })
+      .select("hashes_meals.meal_id as meal_id")
+      .distinct()
+      .addErrorContext(() => "Failed to fetch meal IDs from last 7 days");
 
-    const mealIds = mealIdRows.map((row) => row.meal_id);
+    const parsedMealIds = distinctMealIdsSchema.parse(mealIdRows);
+
+    const mealIds = parsedMealIds.map((row) => row.meal_id);
 
     if (mealIds.length === 0) {
       return response.status(200).json({ meals: [] });
