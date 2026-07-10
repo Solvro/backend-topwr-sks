@@ -64,7 +64,7 @@ export default class SubscriptionsController {
           { mode: "write" },
         )
         .addErrorContext(
-          () => `Failed to unregister device from meal notifications`,
+          `Failed to unregister device from meal notifications`,
         )) as PgResult;
       if (res.rowCount === 0) {
         return response.ok({ message: "Was not subscribed" });
@@ -85,7 +85,7 @@ export default class SubscriptionsController {
       .where("deviceKey", deviceKey)
       .preload("meals")
       .first()
-      .addErrorContext(() => `Failed to fetch subscriptions for this device`);
+      .addErrorContext(`Failed to fetch subscriptions for this device`);
 
     if (device === null) {
       return response.ok({

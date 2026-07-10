@@ -38,7 +38,7 @@ export default class MealsController {
       .orderBy("updatedAt", "desc")
       .first()
       .addErrorContext(
-        () => "Failed to fetch the latest menu version from the database",
+        "Failed to fetch the latest menu version from the database",
       );
     if (lastHash === null) {
       logger.debug("No records in the database - run scrapper");
@@ -72,7 +72,7 @@ export default class MealsController {
         `,
         )
         .addErrorContext(
-          () => "Failed to fetch the first hash with meals from the database",
+          "Failed to fetch the first hash with meals from the database",
         ),
     ).rows[0].hash;
     const firstHashWithMeals = await WebsiteHash.query()
@@ -157,7 +157,7 @@ export default class MealsController {
       })
       .select("hashes_meals.meal_id as meal_id")
       .distinct()
-      .addErrorContext(() => "Failed to fetch meal IDs from last 7 days");
+      .addErrorContext("Failed to fetch meal IDs from last 7 days");
 
     const parsedMealIds = distinctMealIdsSchema.parse(mealIdRows);
 
