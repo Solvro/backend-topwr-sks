@@ -1,8 +1,8 @@
 import { DateTime } from "luxon";
-import assert from "node:assert";
 
 import type { HttpContext } from "@adonisjs/core/http";
 
+import { InternalServerException } from "#exceptions/http_exceptions";
 import SksUser from "#models/sks_user";
 
 //this value determines the period over which the trend will be counted (multiply the value by 5 minutes)
@@ -25,66 +25,52 @@ export default class SksUsersController {
    * @responseBody 500 - {"message":"Failed to fetch the latest SKS user","error": "Some error message"}
    */
   async latest({ response }: HttpContext) {
-    try {
-      const currentTime = DateTime.now().setZone("Europe/Warsaw").toSQL();
-      if (currentTime === null) {
-        return response
-          .status(500)
-          .json({ message: "Failed to convert time to SQL format" });
-      }
-
-      const latestData = await SksUser.query()
-        .where("externalTimestamp", "<", currentTime)
-        .orderBy("externalTimestamp", "desc")
-        .first();
-
-      const isResultRecent = latestData !== null && latestData.activeUsers > 0;
-
-      // If the first record has activeUsers set to 0, get the second record instead
-      const entryToReturn = isResultRecent
-        ? latestData
-        : await SksUser.query()
-            .where("externalTimestamp", "<", currentTime)
-            .orderBy("externalTimestamp", "desc")
-            .offset(1)
-            .first();
-
-      if (entryToReturn === null) {
-        return response
-          .status(404)
-          .json({ message: "Could not find the matching data in database" });
-      }
-
-      const referenceTime = entryToReturn.externalTimestamp.toSQL();
-      if (referenceTime === null) {
-        return response.status(500).json({
-          message: "Failed to convert external timestamp to SQL format",
-        });
-      }
-
-      const trend = await this.calculateTrend(
-        entryToReturn,
-        referenceTime,
-        trendDelta,
-      );
-      const nextUpdateTimestamp = entryToReturn.updatedAt.plus({
-        minute: 5,
-        second: 30,
-      });
-
-      return response.status(200).json({
-        ...entryToReturn.toJSON(),
-        trend,
-        isResultRecent,
-        nextUpdateTimestamp,
-      });
-    } catch (error) {
-      assert(error instanceof Error);
-      return response.status(500).json({
-        message: "Failed to fetch the latest SKS user",
-        error: error.message,
-      });
+    const currentTime = DateTime.now().setZone("Europe/Warsaw").toSQL();
+    if (currentTime === null) {
+      throw new InternalServerException("Failed to convert time to SQL format");
     }
+    const latestData = await SksUser.query()
+      .where("externalTimestamp", "<", currentTime)
+      .orderBy("externalTimestamp", "desc")
+      .firstOrFail()
+      .addErrorContext({
+        message: "Could not find the matching data in database",
+        status: 404,
+        code: "E_NOT_FOUND",
+      });
+    const isResultRecent = latestData.activeUsers > 0;
+    // If the first record has activeUsers set to 0, get the second record instead
+    const entryToReturn = isResultRecent
+      ? latestData
+      : await SksUser.query()
+          .where("externalTimestamp", "<", currentTime)
+          .orderBy("externalTimestamp", "desc")
+          .offset(1)
+          .firstOrFail()
+          .addErrorContext({
+            message: "Could not find matching data in db",
+            status: 404,
+            code: "E_NOT_FOUND",
+          });
+    const referenceTime = entryToReturn.externalTimestamp.toSQL();
+    if (referenceTime === null) {
+      throw new InternalServerException("Failed to convert time to SQL format");
+    }
+    const trend = await this.calculateTrend(
+      entryToReturn,
+      referenceTime,
+      trendDelta,
+    );
+    const nextUpdateTimestamp = entryToReturn.updatedAt.plus({
+      minute: 5,
+      second: 30,
+    });
+    return response.status(200).json({
+      ...entryToReturn.toJSON(),
+      trend,
+      isResultRecent,
+      nextUpdateTimestamp,
+    });
   }
 
   /**
@@ -96,33 +82,27 @@ export default class SksUsersController {
    * @responseBody 500 - {"message":"Failed to fetch today's SKS users","error": "Some error message"}
    */
   async today({ response }: HttpContext) {
-    try {
-      const currentDateTime = DateTime.now().setZone("Europe/Warsaw");
-      const todayStart = currentDateTime
-        .set({ hour: 0, minute: 0, second: 0, millisecond: 0 })
-        .toSQL();
-      const todayEnd = currentDateTime
-        .set({ hour: 23, minute: 59, second: 59, millisecond: 999 })
-        .toSQL();
+    const currentDateTime = DateTime.now().setZone("Europe/Warsaw");
 
-      if (todayStart === null || todayEnd === null) {
-        return response
-          .status(500)
-          .json({ message: "Failed to convert time to SQL format" });
-      }
+    const todayStart = currentDateTime
+      .set({ hour: 0, minute: 0, second: 0, millisecond: 0 })
+      .toSQL();
 
-      const todayData = await SksUser.query()
-        .whereBetween("externalTimestamp", [todayStart, todayEnd])
-        .orderBy("externalTimestamp", "asc");
+    const todayEnd = currentDateTime
+      .set({ hour: 23, minute: 59, second: 59, millisecond: 999 })
+      .toSQL();
 
-      return response.status(200).json(todayData);
-    } catch (error) {
-      assert(error instanceof Error);
-      return response.status(500).json({
-        message: "Failed to fetch today's SKS users",
-        error: error.message,
-      });
+    if (todayStart === null || todayEnd === null) {
+      throw new InternalServerException("Failed to convert time to SQL format");
     }
+
+    const todayData = await SksUser.query()
+      .whereBetween("externalTimestamp", [todayStart, todayEnd])
+      .orderBy("externalTimestamp", "asc")
+      .addErrorContext(
+        () => `Failed to fetch users for ${todayStart} to ${todayEnd}`,
+      );
+    return response.status(200).json(todayData);
   }
 
   /**
@@ -137,7 +117,11 @@ export default class SksUsersController {
       .where("externalTimestamp", "<", referenceTime)
       .orderBy("externalTimestamp", "desc")
       .offset(delta)
-      .first();
+      .first()
+      .addErrorContext(
+        () =>
+          `Failed to fetch trend data for ${referenceTime} with delta ${delta}`,
+      );
 
     if (trendData === null) {
       return Trend.STABLE; // If no previous data, assume stable trend

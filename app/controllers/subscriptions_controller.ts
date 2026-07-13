@@ -3,7 +3,6 @@ import { z } from "zod";
 import type { HttpContext } from "@adonisjs/core/http";
 import db from "@adonisjs/lucid/services/db";
 
-import { handleError } from "#exceptions/handler";
 import Device from "#models/device";
 
 const SubscriptionToggleSchema = z.object({
@@ -35,41 +34,43 @@ export default class SubscriptionsController {
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async toggle({ request, response }: HttpContext) {
-    try {
-      const raw = request.body() as RawSubscriptionToggleInput;
-
-      const parsed = SubscriptionToggleSchema.parse({
-        deviceKey: raw.deviceKey,
-        mealId: raw.mealId,
-        subscribe: raw.subscribe,
-      });
-      const { deviceKey, mealId, subscribe } = parsed;
-
-      if (subscribe) {
-        const res: PgResult = await db.rawQuery(
+    const raw = request.body() as RawSubscriptionToggleInput;
+    const parsed = SubscriptionToggleSchema.parse({
+      deviceKey: raw.deviceKey,
+      mealId: raw.mealId,
+      subscribe: raw.subscribe,
+    });
+    const { deviceKey, mealId, subscribe } = parsed;
+    if (subscribe) {
+      const res = (await db
+        .rawQuery(
           "INSERT INTO subscriptions (device_key, meal_id, created_at) VALUES (?, ?, NOW()) ON CONFLICT DO NOTHING",
           [deviceKey, mealId],
           { mode: "write" },
-        );
-        if (res.rowCount === 0) {
-          return response.ok({ message: "Already subscribed" });
-        } else {
-          return response.ok({ message: "Subscribed" });
-        }
+        )
+        .addErrorContext(
+          () => `Failed to register device for meal notifications`,
+        )) as PgResult;
+      if (res.rowCount === 0) {
+        return response.ok({ message: "Already subscribed" });
       } else {
-        const res: PgResult = await db.rawQuery(
+        return response.ok({ message: "Subscribed" });
+      }
+    } else {
+      const res = (await db
+        .rawQuery(
           "DELETE FROM subscriptions WHERE device_key = ? AND meal_id = ?",
           [deviceKey, mealId],
           { mode: "write" },
-        );
-        if (res.rowCount === 0) {
-          return response.ok({ message: "Was not subscribed" });
-        } else {
-          return response.ok({ message: "Unsubscribed" });
-        }
+        )
+        .addErrorContext(
+          `Failed to unregister device from meal notifications`,
+        )) as PgResult;
+      if (res.rowCount === 0) {
+        return response.ok({ message: "Was not subscribed" });
+      } else {
+        return response.ok({ message: "Unsubscribed" });
       }
-    } catch (error) {
-      return handleError(error, response);
     }
   }
 
@@ -78,25 +79,22 @@ export default class SubscriptionsController {
    * @summary Get meals the device is subscribed to
    */
   async listForDevice({ request, response }: HttpContext) {
-    try {
-      const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
+    const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
 
-      const device = await Device.query()
-        .where("deviceKey", deviceKey)
-        .preload("meals")
-        .first();
+    const device = await Device.query()
+      .where("deviceKey", deviceKey)
+      .preload("meals")
+      .first()
+      .addErrorContext(`Failed to fetch subscriptions for this device`);
 
-      if (device === null) {
-        return response.ok({
-          subscriptions: [],
-        });
-      }
-
+    if (device === null) {
       return response.ok({
-        meals: device.meals,
+        subscriptions: [],
       });
-    } catch (error) {
-      return handleError(error, response);
     }
+
+    return response.ok({
+      meals: device.meals,
+    });
   }
 }
