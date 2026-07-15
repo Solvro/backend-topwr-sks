@@ -99,6 +99,7 @@ export default class SksUsersController {
     const todayData = await SksUser.query()
       .whereBetween("externalTimestamp", [todayStart, todayEnd])
       .orderBy("externalTimestamp", "asc")
+      .exec()
       .addErrorContext(
         () => `Failed to fetch users for ${todayStart} to ${todayEnd}`,
       );

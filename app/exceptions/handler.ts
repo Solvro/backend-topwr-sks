@@ -4,7 +4,7 @@ import {
   prepareReportForLogging,
   serializeErrorReport,
 } from "@solvro/error-handling/reporting";
-import { z } from "zod";
+import { errors as vineErrors } from "@vinejs/vine";
 
 import { ExceptionHandler } from "@adonisjs/core/http";
 import type { HttpContext } from "@adonisjs/core/http";
@@ -37,7 +37,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     error: unknown,
     ctx: HttpContext & ExceptionHandlerContextExtras,
   ) {
-    if (error instanceof z.ZodError) {
+    if (error instanceof vineErrors.E_VALIDATION_ERROR) {
       return ctx.response.badRequest({
         message: "Invalid input",
         error: error.message,

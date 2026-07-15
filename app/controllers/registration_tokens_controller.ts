@@ -1,21 +1,18 @@
+import vine from "@vinejs/vine";
 import { DateTime } from "luxon";
-import { z, null as zodNull } from "zod";
 
 import type { HttpContext } from "@adonisjs/core/http";
 
 import Device, { getTokenExpirationTime } from "#models/device";
 
-const RegistrationTokenPayload = z.object({
-  deviceKey: z.string().min(1),
-  registrationToken: z.string().min(1).or(zodNull()),
-});
+const RegistrationTokenPayload = vine.compile(
+  vine.object({
+    deviceKey: vine.string().minLength(1),
+    registrationToken: vine.string().minLength(1).optional().nullable(),
+  }),
+);
 
-interface RegistrationTokenInput {
-  deviceKey: unknown;
-  registrationToken: unknown;
-}
-
-const deviceKeySchema = z.string().min(1, "deviceKey param is required");
+const deviceKeyValidator = vine.compile(vine.string().minLength(1));
 
 export default class RegistrationTokensController {
   /**
@@ -25,7 +22,9 @@ export default class RegistrationTokensController {
    * @responseBody 400 - {"error":"string"}
    */
   async hasToken({ request, response }: HttpContext) {
-    const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
+    const deviceKey = await deviceKeyValidator.validate(
+      request.param("deviceKey"),
+    );
     const device = await Device.findByOrFail(
       "deviceKey",
       deviceKey,
@@ -58,12 +57,7 @@ export default class RegistrationTokensController {
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async updateOrCreate({ request, response }: HttpContext) {
-    const raw = request.body() as RegistrationTokenInput;
-
-    const parsed = RegistrationTokenPayload.parse({
-      deviceKey: raw.deviceKey,
-      registrationToken: raw.registrationToken,
-    });
+    const parsed = await request.validateUsing(RegistrationTokenPayload);
 
     const { deviceKey, registrationToken } = parsed;
 
