@@ -77,7 +77,7 @@ export default class MealsController {
     logger.debug(
       "No meals found in the latest hash - fetching the previous one",
     );
-    const rawResult = await db.rawQuery(
+    const rawResult = (await db.rawQuery(
       `
           SELECT website_hashes.hash FROM public.website_hashes LEFT JOIN public.hashes_meals ON website_hashes.hash = hashes_meals.hash_fk
           GROUP BY website_hashes.hash
@@ -85,7 +85,7 @@ export default class MealsController {
           ORDER BY website_hashes.updated_at DESC
           LIMIT 1
         `,
-    );
+    )) as unknown;
 
     const validatedResult =
       await firstHashWithMealsRawValidator.validate(rawResult);
