@@ -1,5 +1,5 @@
+import vine from "@vinejs/vine";
 import { DateTime } from "luxon";
-import { z } from "zod";
 
 import type { HttpContext } from "@adonisjs/core/http";
 import logger from "@adonisjs/core/services/logger";
@@ -9,19 +9,36 @@ import HashesMeal from "#models/hashes_meal";
 import Meal from "#models/meal";
 import WebsiteHash from "#models/website_hash";
 
-const firstHashWithMealsRawSchema = z.object({
-  rows: z
-    .array(
-      z.object({
-        hash: z.string(),
-      }),
-    )
-    .nonempty(),
-});
+const firstHashWithMealsRawValidator = vine.compile(
+  vine.object({
+    rows: vine
+      .array(
+        vine.object({
+          hash: vine.string(),
+        }),
+      )
+      .minLength(1),
+  }),
+);
 
-const distinctMealIdsSchema = z.array(
-  z.object({
-    meal_id: z.coerce.number(),
+const distinctMealIdsValidator = vine.compile(
+  vine.array(
+    vine.object({
+      meal_id: vine.number(),
+    }),
+  ),
+);
+
+const paginationValidator = vine.compile(
+  vine.object({
+    page: vine.number().min(1).optional(),
+    limit: vine.number().min(1).optional(),
+  }),
+);
+
+const recentSearchValidator = vine.compile(
+  vine.object({
+    search: vine.string().trim().optional(),
   }),
 );
 
@@ -60,27 +77,24 @@ export default class MealsController {
     logger.debug(
       "No meals found in the latest hash - fetching the previous one",
     );
-    const firstHashWithMealsRaw = firstHashWithMealsRawSchema.parse(
-      await db
-        .rawQuery(
-          `
+    const firstHashWithMealsRaw = await firstHashWithMealsRawValidator.validate(
+      await db.rawQuery(
+        `
           SELECT website_hashes.hash FROM public.website_hashes LEFT JOIN public.hashes_meals ON website_hashes.hash = hashes_meals.hash_fk
           GROUP BY website_hashes.hash
           HAVING COUNT(hashes_meals.*) != 0
           ORDER BY website_hashes.updated_at DESC
           LIMIT 1
         `,
-        )
-        .addErrorContext(
-          "Failed to fetch the first hash with meals from the database",
-        ),
-    ).rows[0].hash;
+      ),
+    );
+
     const firstHashWithMeals = await WebsiteHash.query()
-      .where("hash", firstHashWithMealsRaw)
+      .where("hash", firstHashWithMealsRaw.rows[0].hash)
       .firstOrFail()
       .addErrorContext(
         () =>
-          `Failed to fetch the website hash record for hash ${firstHashWithMealsRaw}`,
+          `Failed to fetch the website hash record for hash ${firstHashWithMealsRaw.rows[0].hash}`,
       );
     todayMeals = await getMealsByHash(firstHashWithMeals.hash);
     logger.debug(`fetched ${todayMeals.length} meals from the database}`);
@@ -101,8 +115,10 @@ export default class MealsController {
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async index({ request, response }: HttpContext) {
-    const page = request.input("page", 1) as number;
-    const limit = request.input("limit", 10) as number;
+    const payload = await request.validateUsing(paginationValidator);
+
+    const page = payload.page ?? 1;
+    const limit = payload.limit ?? 10;
 
     const hashes = await HashesMeal.query()
       .orderBy("createdAt", "desc")
@@ -140,7 +156,8 @@ export default class MealsController {
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async recent({ request, response }: HttpContext) {
-    const rawSearch = (request.input("search", "") as string).trim();
+    const payload = await request.validateUsing(recentSearchValidator);
+    const rawSearch = payload.search ?? "";
     const sevenDaysAgo = DateTime.now().minus({ days: 7 }).toJSDate();
 
     const mealIdRows = await db
@@ -156,10 +173,9 @@ export default class MealsController {
         void query.whereILike("meals.name", `%${rawSearch}%`);
       })
       .select("hashes_meals.meal_id as meal_id")
-      .distinct()
-      .addErrorContext("Failed to fetch meal IDs from last 7 days");
+      .distinct();
 
-    const parsedMealIds = distinctMealIdsSchema.parse(mealIdRows);
+    const parsedMealIds = await distinctMealIdsValidator.validate(mealIdRows);
 
     const mealIds = parsedMealIds.map((row) => row.meal_id);
 
@@ -170,6 +186,7 @@ export default class MealsController {
     const meals = await Meal.query()
       .whereIn("id", mealIds)
       .orderBy("name", "asc")
+      .exec()
       .addErrorContext(
         () =>
           `Failed to fetch meals from the last 7 days with search term '${rawSearch}'`,
@@ -185,6 +202,7 @@ async function getMealsByHash(hash: string) {
   return await HashesMeal.query()
     .where("hashFk", hash)
     .preload("meal")
+    .exec()
     .addErrorContext(() => `Failed to fetch meals for hash ${hash}`);
 }
 

@@ -1,27 +1,23 @@
-import { z } from "zod";
+import vine from "@vinejs/vine";
 
 import type { HttpContext } from "@adonisjs/core/http";
 import db from "@adonisjs/lucid/services/db";
 
 import Device from "#models/device";
 
-const SubscriptionToggleSchema = z.object({
-  deviceKey: z.string().min(1),
-  mealId: z.number(),
-  subscribe: z.boolean(),
-});
-
-interface RawSubscriptionToggleInput {
-  deviceKey: unknown;
-  mealId: unknown;
-  subscribe: unknown;
-}
+const SubscriptionToggleValidator = vine.compile(
+  vine.object({
+    deviceKey: vine.string().minLength(1),
+    mealId: vine.number(),
+    subscribe: vine.boolean(),
+  }),
+);
 
 interface PgResult {
   rowCount: number;
 }
 
-const deviceKeySchema = z.string().min(1, "deviceKey param is required");
+const deviceKeyValidator = vine.compile(vine.string().minLength(1));
 
 export default class SubscriptionsController {
   /**
@@ -34,38 +30,25 @@ export default class SubscriptionsController {
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async toggle({ request, response }: HttpContext) {
-    const raw = request.body() as RawSubscriptionToggleInput;
-    const parsed = SubscriptionToggleSchema.parse({
-      deviceKey: raw.deviceKey,
-      mealId: raw.mealId,
-      subscribe: raw.subscribe,
-    });
-    const { deviceKey, mealId, subscribe } = parsed;
+    const payload = await request.validateUsing(SubscriptionToggleValidator);
+    const { deviceKey, mealId, subscribe } = payload;
     if (subscribe) {
-      const res = (await db
-        .rawQuery(
-          "INSERT INTO subscriptions (device_key, meal_id, created_at) VALUES (?, ?, NOW()) ON CONFLICT DO NOTHING",
-          [deviceKey, mealId],
-          { mode: "write" },
-        )
-        .addErrorContext(
-          () => `Failed to register device for meal notifications`,
-        )) as PgResult;
+      const res = await db.rawQuery<PgResult>(
+        "INSERT INTO subscriptions (device_key, meal_id, created_at) VALUES (?, ?, NOW()) ON CONFLICT DO NOTHING",
+        [deviceKey, mealId],
+        { mode: "write" },
+      );
       if (res.rowCount === 0) {
         return response.ok({ message: "Already subscribed" });
       } else {
         return response.ok({ message: "Subscribed" });
       }
     } else {
-      const res = (await db
-        .rawQuery(
-          "DELETE FROM subscriptions WHERE device_key = ? AND meal_id = ?",
-          [deviceKey, mealId],
-          { mode: "write" },
-        )
-        .addErrorContext(
-          `Failed to unregister device from meal notifications`,
-        )) as PgResult;
+      const res = await db.rawQuery<PgResult>(
+        "DELETE FROM subscriptions WHERE device_key = ? AND meal_id = ?",
+        [deviceKey, mealId],
+        { mode: "write" },
+      );
       if (res.rowCount === 0) {
         return response.ok({ message: "Was not subscribed" });
       } else {
@@ -79,7 +62,9 @@ export default class SubscriptionsController {
    * @summary Get meals the device is subscribed to
    */
   async listForDevice({ request, response }: HttpContext) {
-    const deviceKey = deviceKeySchema.parse(request.param("deviceKey"));
+    const deviceKey = await deviceKeyValidator.validate(
+      request.param("deviceKey"),
+    );
 
     const device = await Device.query()
       .where("deviceKey", deviceKey)
