@@ -77,25 +77,24 @@ export default class MealsController {
     logger.debug(
       "No meals found in the latest hash - fetching the previous one",
     );
-    const rawResult = (await db.rawQuery(
-      `
+    const firstHashWithMealsRaw = await firstHashWithMealsRawValidator.validate(
+      await db.rawQuery(
+        `
           SELECT website_hashes.hash FROM public.website_hashes LEFT JOIN public.hashes_meals ON website_hashes.hash = hashes_meals.hash_fk
           GROUP BY website_hashes.hash
           HAVING COUNT(hashes_meals.*) != 0
           ORDER BY website_hashes.updated_at DESC
           LIMIT 1
         `,
-    )) as unknown;
-
-    const validatedResult =
-      await firstHashWithMealsRawValidator.validate(rawResult);
+      ),
+    );
 
     const firstHashWithMeals = await WebsiteHash.query()
-      .where("hash", validatedResult.rows[0].hash)
+      .where("hash", firstHashWithMealsRaw.rows[0].hash)
       .firstOrFail()
       .addErrorContext(
         () =>
-          `Failed to fetch the website hash record for hash ${validatedResult.rows[0].hash}`,
+          `Failed to fetch the website hash record for hash ${firstHashWithMealsRaw.rows[0].hash}`,
       );
     todayMeals = await getMealsByHash(firstHashWithMeals.hash);
     logger.debug(`fetched ${todayMeals.length} meals from the database}`);

@@ -33,22 +33,22 @@ export default class SubscriptionsController {
     const payload = await request.validateUsing(SubscriptionToggleValidator);
     const { deviceKey, mealId, subscribe } = payload;
     if (subscribe) {
-      const res = (await db.rawQuery(
+      const res = await db.rawQuery<PgResult>(
         "INSERT INTO subscriptions (device_key, meal_id, created_at) VALUES (?, ?, NOW()) ON CONFLICT DO NOTHING",
         [deviceKey, mealId],
         { mode: "write" },
-      )) as unknown as PgResult;
+      );
       if (res.rowCount === 0) {
         return response.ok({ message: "Already subscribed" });
       } else {
         return response.ok({ message: "Subscribed" });
       }
     } else {
-      const res = (await db.rawQuery(
+      const res = await db.rawQuery<PgResult>(
         "DELETE FROM subscriptions WHERE device_key = ? AND meal_id = ?",
         [deviceKey, mealId],
         { mode: "write" },
-      )) as unknown as PgResult;
+      );
       if (res.rowCount === 0) {
         return response.ok({ message: "Was not subscribed" });
       } else {
