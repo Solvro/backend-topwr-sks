@@ -38,7 +38,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     ctx: HttpContext & ExceptionHandlerContextExtras,
   ) {
     if (error instanceof vineErrors.E_VALIDATION_ERROR) {
-      return ctx.response.badRequest({
+      return ctx.response.status(422).send({
         message: "Invalid input",
         error: error.message,
       });
