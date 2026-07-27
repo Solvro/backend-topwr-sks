@@ -37,12 +37,6 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     error: unknown,
     ctx: HttpContext & ExceptionHandlerContextExtras,
   ) {
-    if (error instanceof vineErrors.E_VALIDATION_ERROR) {
-      return ctx.response.status(422).send({
-        message: "Invalid input",
-        error: error.message,
-      });
-    }
     const report = analyzeErrorStack(toIBaseError(error));
     if (!report.code.startsWith("E_")) {
       if (report.code.startsWith("ERR_")) {
