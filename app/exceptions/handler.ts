@@ -4,7 +4,6 @@ import {
   prepareReportForLogging,
   serializeErrorReport,
 } from "@solvro/error-handling/reporting";
-import { errors as vineErrors } from "@vinejs/vine";
 
 import { ExceptionHandler } from "@adonisjs/core/http";
 import type { HttpContext } from "@adonisjs/core/http";
