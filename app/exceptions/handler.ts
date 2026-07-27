@@ -4,7 +4,6 @@ import {
   prepareReportForLogging,
   serializeErrorReport,
 } from "@solvro/error-handling/reporting";
-import { z } from "zod";
 
 import { ExceptionHandler } from "@adonisjs/core/http";
 import type { HttpContext } from "@adonisjs/core/http";
@@ -37,12 +36,6 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     error: unknown,
     ctx: HttpContext & ExceptionHandlerContextExtras,
   ) {
-    if (error instanceof z.ZodError) {
-      return ctx.response.badRequest({
-        message: "Invalid input",
-        error: error.message,
-      });
-    }
     const report = analyzeErrorStack(toIBaseError(error));
     if (!report.code.startsWith("E_")) {
       if (report.code.startsWith("ERR_")) {
