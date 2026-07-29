@@ -21,14 +21,6 @@ const firstHashWithMealsRawValidator = vine.compile(
   }),
 );
 
-const distinctMealIdsValidator = vine.compile(
-  vine.array(
-    vine.object({
-      meal_id: vine.number(),
-    }),
-  ),
-);
-
 const paginationValidator = vine.compile(
   vine.object({
     page: vine.number().min(1).optional(),
@@ -160,36 +152,24 @@ export default class MealsController {
     const rawSearch = payload.search ?? "";
     const sevenDaysAgo = DateTime.now().minus({ days: 7 }).toJSDate();
 
-    const mealIdRows = await db
-      .from("hashes_meals")
+    const meals = await Meal.query()
+      .select("meals.*")
+      .innerJoin("hashes_meals", "hashes_meals.meal_id", "meals.id")
       .innerJoin(
         "website_hashes",
-        "hashes_meals.hash_fk",
         "website_hashes.hash",
+        "hashes_meals.hash_fk",
       )
-      .innerJoin("meals", "hashes_meals.meal_id", "meals.id")
       .where("website_hashes.updated_at", ">=", sevenDaysAgo)
-      .if(rawSearch !== "", (query) => {
+      .if(rawSearch, (query) => {
         void query.whereILike("meals.name", `%${rawSearch}%`);
       })
-      .select("hashes_meals.meal_id as meal_id")
-      .distinct();
-
-    const parsedMealIds = await distinctMealIdsValidator.validate(mealIdRows);
-
-    const mealIds = parsedMealIds.map((row) => row.meal_id);
-
-    if (mealIds.length === 0) {
-      return response.status(200).json({ meals: [] });
-    }
-
-    const meals = await Meal.query()
-      .whereIn("id", mealIds)
-      .orderBy("name", "asc")
+      .orderBy("meals.name", "asc")
+      .distinct("meals.id")
       .exec()
       .addErrorContext(
         () =>
-          `Failed to fetch meals from the last 7 days with search term '${rawSearch}'`,
+          `Failed to fetch distinct meals from the last 7 days with search term "${rawSearch}"`,
       );
 
     return response
