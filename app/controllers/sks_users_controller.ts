@@ -50,14 +50,16 @@ export default class SksUsersController {
     }
 
     const isResultRecent = entries[0].activeUsers > 0;
-    // If the first record has activeUsers set to 0, get the second record instead
-    const entryIndex = isResultRecent ? 0 : 1;
-    const entryToReturn = entries[entryIndex];
+    if (!isResultRecent) {
+      // If the first record has activeUsers set to 0, get the second record instead
+      entries.shift();
+    }
+    const entryToReturn = entries.at(0);
     if (entryToReturn === undefined) {
       throw new NotFoundException("Could not find the matching data in db");
     }
 
-    const trend = this.calculateTrend(entries, entryIndex, trendDelta);
+    const trend = this.calculateTrend(entries, trendDelta);
     const nextUpdateTimestamp = entryToReturn.updatedAt.plus({
       minute: 5,
       second: 30,
@@ -106,18 +108,14 @@ export default class SksUsersController {
   /**
    * Helper function to calculate trend
    */
-  private calculateTrend(
-    entries: SksUser[],
-    entryIndex: number,
-    delta: number,
-  ): Trend {
-    const trendData = entries[entryIndex + 1 + delta];
+  private calculateTrend(entries: SksUser[], delta: number): Trend {
+    const trendData = entries.at(1 + delta);
 
     if (trendData === undefined) {
       return Trend.STABLE; // If no previous data, assume stable trend
     }
 
-    const latestData = entries[entryIndex];
+    const latestData = entries[0];
     if (trendData.activeUsers < latestData.activeUsers) {
       return Trend.INCREASING;
     } else if (trendData.activeUsers > latestData.activeUsers) {
