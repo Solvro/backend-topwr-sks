@@ -2,7 +2,10 @@ import { DateTime } from "luxon";
 
 import type { HttpContext } from "@adonisjs/core/http";
 
-import { InternalServerException } from "#exceptions/http_exceptions";
+import {
+  InternalServerException,
+  NotFoundException,
+} from "#exceptions/http_exceptions";
 import SksUser from "#models/sks_user";
 
 //this value determines the period over which the trend will be counted (multiply the value by 5 minutes)
@@ -29,42 +32,39 @@ export default class SksUsersController {
     if (currentTime === null) {
       throw new InternalServerException("Failed to convert time to SQL format");
     }
-    const latestData = await SksUser.query()
+
+    const entries = await SksUser.query()
       .where("externalTimestamp", "<", currentTime)
       .orderBy("externalTimestamp", "desc")
-      .firstOrFail()
-      .addErrorContext({
-        message: "Could not find the matching data in database",
-        status: 404,
-        code: "E_NOT_FOUND",
-      });
-    const isResultRecent = latestData.activeUsers > 0;
-    // If the first record has activeUsers set to 0, get the second record instead
-    const entryToReturn = isResultRecent
-      ? latestData
-      : await SksUser.query()
-          .where("externalTimestamp", "<", currentTime)
-          .orderBy("externalTimestamp", "desc")
-          .offset(1)
-          .firstOrFail()
-          .addErrorContext({
-            message: "Could not find matching data in db",
-            status: 404,
-            code: "E_NOT_FOUND",
-          });
-    const referenceTime = entryToReturn.externalTimestamp.toSQL();
-    if (referenceTime === null) {
-      throw new InternalServerException("Failed to convert time to SQL format");
+      // +3 covers possible fallback to the 2nd entry, skipping the current entry,
+      // and converting the highest needed index to the required array length
+      .limit(trendDelta + 3)
+      .addErrorContext(
+        () => `Failed to fetch the latest SKS users for ${currentTime}`,
+      );
+
+    if (entries.length === 0) {
+      throw new NotFoundException(
+        "Could not find the matching data in database",
+      );
     }
-    const trend = await this.calculateTrend(
-      entryToReturn,
-      referenceTime,
-      trendDelta,
-    );
+
+    const isResultRecent = entries[0].activeUsers > 0;
+    if (!isResultRecent) {
+      // If the first record has activeUsers set to 0, get the second record instead
+      entries.shift();
+    }
+    const entryToReturn = entries.at(0);
+    if (entryToReturn === undefined) {
+      throw new NotFoundException("Could not find the matching data in db");
+    }
+
+    const trend = this.calculateTrend(entries, trendDelta);
     const nextUpdateTimestamp = entryToReturn.updatedAt.plus({
       minute: 5,
       second: 30,
     });
+
     return response.status(200).json({
       ...entryToReturn.toJSON(),
       trend,
@@ -109,25 +109,14 @@ export default class SksUsersController {
   /**
    * Helper function to calculate trend
    */
-  private async calculateTrend(
-    latestData: SksUser,
-    referenceTime: string,
-    delta: number,
-  ): Promise<Trend> {
-    const trendData = await SksUser.query()
-      .where("externalTimestamp", "<", referenceTime)
-      .orderBy("externalTimestamp", "desc")
-      .offset(delta)
-      .first()
-      .addErrorContext(
-        () =>
-          `Failed to fetch trend data for ${referenceTime} with delta ${delta}`,
-      );
+  private calculateTrend(entries: SksUser[], delta: number): Trend {
+    const trendData = entries.at(1 + delta);
 
-    if (trendData === null) {
+    if (trendData === undefined) {
       return Trend.STABLE; // If no previous data, assume stable trend
     }
 
+    const latestData = entries[0];
     if (trendData.activeUsers < latestData.activeUsers) {
       return Trend.INCREASING;
     } else if (trendData.activeUsers > latestData.activeUsers) {
