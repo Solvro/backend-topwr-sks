@@ -189,7 +189,7 @@ async function addMealToDb(
   try {
     let mealQuery = Meal.query().where("name", name);
     if (category !== null) {
-      mealQuery = mealQuery.where({ category: category });
+      mealQuery = mealQuery.where("category", category);
     } else {
       mealQuery = mealQuery.whereNull("category");
     }
