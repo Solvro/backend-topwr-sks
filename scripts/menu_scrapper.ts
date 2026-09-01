@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 
 import logger from "@adonisjs/core/services/logger";
 import db from "@adonisjs/lucid/services/db";
+import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 
 import HashesMeal from "#models/hashes_meal";
 import Meal, { MealCategory } from "#models/meal";
@@ -55,7 +56,7 @@ export async function runScrapper() {
     // Get hashes of meals that were notified recently
     const recentlyNotifiedMealsSet = await getRecentHashes();
     for (const meal of meals) {
-      const mealEntity = await addMealToDb(meal.name, meal.category);
+      const mealEntity = await addMealToDb(meal.name, meal.category, trx);
       if (mealEntity === null) {
         continue; // Failed to add, skip
       }
@@ -183,11 +184,12 @@ function assignCategories(category: string) {
 async function addMealToDb(
   name: string,
   category: MealCategory | null,
+  trx: TransactionClientContract,
 ): Promise<Meal | null> {
   try {
     let mealQuery = Meal.query().where("name", name);
     if (category !== null) {
-      mealQuery = mealQuery.where("category", category);
+      mealQuery = mealQuery.where({ category: category });
     } else {
       mealQuery = mealQuery.whereNull("category");
     }
@@ -197,7 +199,7 @@ async function addMealToDb(
       return existingMeal;
     } else {
       logger.debug(`Meal ${name} does not exist in the database. Creating...`);
-      return await Meal.create({ name, category });
+      return await Meal.create({ name, category }, { client: trx });
     }
   } catch (error) {
     assert(error instanceof Error);
