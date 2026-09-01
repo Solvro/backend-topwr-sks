@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 
 import logger from "@adonisjs/core/services/logger";
 import db from "@adonisjs/lucid/services/db";
-import { TransactionClientContract } from "@adonisjs/lucid/types/database";
+import type { TransactionClientContract } from "@adonisjs/lucid/types/database";
 
 import HashesMeal from "#models/hashes_meal";
 import Meal, { MealCategory } from "#models/meal";
