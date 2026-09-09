@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 
 import logger from "@adonisjs/core/services/logger";
 import db from "@adonisjs/lucid/services/db";
+import type { TransactionClientContract } from "@adonisjs/lucid/types/database";
 
 import HashesMeal from "#models/hashes_meal";
 import Meal, { MealCategory } from "#models/meal";
@@ -30,61 +31,63 @@ async function getMenuHTMLOrFail() {
 }
 
 export async function runScrapper() {
-  const trx = await db.transaction();
   try {
-    const html = await getMenuHTMLOrFail();
-    // Extract hash
-    const newHash = await getHash(html);
-    const storedHash = await WebsiteHash.query().where("hash", newHash).first();
-    // Compare to existing
-    if (storedHash !== null) {
-      await storedHash.merge({ updatedAt: DateTime.now() }).save();
-      logger.info(
-        "Hash already exists in the database. Not proceeding with scraping.",
-      );
-      await trx.commit();
-      return;
-    }
-    // Create the new hash
-    const newWebsiteHash = await WebsiteHash.create(
-      { hash: newHash },
-      { client: trx },
-    );
-    // Parse the menu
-    const meals = await parseMenu(html);
-    // Get hashes of meals that were notified recently
-    const recentlyNotifiedMealsSet = await getRecentHashes();
-    for (const meal of meals) {
-      const mealEntity = await addMealToDb(meal.name, meal.category);
-      if (mealEntity === null) {
-        continue; // Failed to add, skip
+    await db.transaction(async (trx) => {
+      const html = await getMenuHTMLOrFail();
+      // Extract hash
+      const newHash = await getHash(html);
+      const storedHash = await WebsiteHash.query({ client: trx })
+        .where("hash", newHash)
+        .first();
+      // Compare to existing
+      if (storedHash !== null) {
+        await storedHash.merge({ updatedAt: DateTime.now() }).save();
+        logger.info(
+          "Hash already exists in the database. Not proceeding with scraping.",
+        );
+        return;
       }
-      // Add as hash entry
-      await HashesMeal.create(
-        {
-          hashFk: newWebsiteHash.hash,
-          mealId: mealEntity.id,
-          size: meal.size,
-          price: meal.price,
-        },
+      // Create the new hash
+      const newWebsiteHash = await WebsiteHash.create(
+        { hash: newHash },
         { client: trx },
       );
-      logger.debug(`${meal.name} added as ${newWebsiteHash.hash} connection.`);
-      // Check if meal was notified recently
-      if (!recentlyNotifiedMealsSet.has(mealEntity.id)) {
-        // If not, notify
-        logger.info(
-          `Meal ${meal.name} has not been notified about recently. Sending notification...`,
+      // Parse the menu
+      const meals = await parseMenu(html);
+      // Get hashes of meals that were notified recently
+      const recentlyNotifiedMealsSet = await getRecentHashes();
+      for (const meal of meals) {
+        const mealEntity = await addMealToDb(meal.name, meal.category, trx);
+        if (mealEntity === null) {
+          continue;
+        }
+        // Add as hash entry
+        await HashesMeal.create(
+          {
+            hashFk: newWebsiteHash.hash,
+            mealId: mealEntity.id,
+            size: meal.size,
+            price: meal.price,
+          },
+          { client: trx },
         );
-        await notifyFavouriteMeal(mealEntity.id, meal.name);
+        logger.debug(
+          `${meal.name} added as ${newWebsiteHash.hash} connection.`,
+        );
+        // Check if meal was notified recently
+        if (!recentlyNotifiedMealsSet.has(mealEntity.id)) {
+          // If not, notify
+          logger.info(
+            `Meal ${meal.name} has not been notified about recently. Sending notification...`,
+          );
+          await notifyFavouriteMeal(mealEntity.id, meal.name);
+        }
+        recentlyNotifiedMealsSet.add(mealEntity.id);
       }
-      recentlyNotifiedMealsSet.add(mealEntity.id);
-    }
-    logger.info("Menu updated successfully.");
-    await trx.commit();
+      logger.info("Menu updated successfully");
+    });
   } catch (error) {
     assert(error instanceof Error);
-    await trx.rollback();
     logger.error(`Failed to update menu: ${error.message}`, error.stack);
   }
 }
@@ -183,6 +186,7 @@ function assignCategories(category: string) {
 async function addMealToDb(
   name: string,
   category: MealCategory | null,
+  trx: TransactionClientContract,
 ): Promise<Meal | null> {
   try {
     let mealQuery = Meal.query().where("name", name);
@@ -197,7 +201,7 @@ async function addMealToDb(
       return existingMeal;
     } else {
       logger.debug(`Meal ${name} does not exist in the database. Creating...`);
-      return await Meal.create({ name, category });
+      return await Meal.create({ name, category }, { client: trx });
     }
   } catch (error) {
     assert(error instanceof Error);

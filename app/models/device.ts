@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 
 import { BaseModel, column, manyToMany } from "@adonisjs/lucid/orm";
+import { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import type { ManyToMany } from "@adonisjs/lucid/types/relations";
 
 import Meal from "#models/meal";
@@ -45,16 +46,22 @@ export default class Device extends BaseModel {
   })
   declare meals: ManyToMany<typeof Meal>;
 
-  public static async updateTokenTimestamps(ids: string[]) {
-    return Device.query()
+  public static async updateTokenTimestamps(
+    ids: string[],
+    trx: TransactionClientContract,
+  ) {
+    return Device.query({ client: trx })
       .update({
         tokenTimestamp: DateTime.now(),
       })
       .whereIn("device_key", ids);
   }
 
-  public static async removeTokens(ids: string[]) {
-    return Device.query()
+  public static async removeTokens(
+    ids: string[],
+    trx: TransactionClientContract,
+  ) {
+    return Device.query({ client: trx })
       .update({
         registrationToken: null,
         tokenTimestamp: null,

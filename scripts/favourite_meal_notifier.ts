@@ -47,28 +47,28 @@ export async function notifyFavouriteMeal(mealId: number, mealName: string) {
       }
     });
     // Expire old tokens
-    await db.rawQuery(
-      "UPDATE devices d SET registration_token = NULL, token_timestamp = NULL " +
-        "FROM subscriptions s WHERE d.device_key = s.device_key " +
-        "AND s.meal_id = ? " +
-        "AND d.registration_token IS NOT NULL " +
-        "AND d.token_timestamp IS NOT NULL " +
-        "AND (EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM d.token_timestamp)) * 1000 > ?;",
-      [mealId, TOKEN_EXPIRATION_TIME_MS],
-      { mode: "write" },
-    );
-    // Fetch valid tokens
-    const queryRes: {
-      rows: { device_key: string; registration_token: string }[];
-    } = await db.rawQuery(
-      "SELECT d.device_key, d.registration_token FROM devices d " +
-        "JOIN subscriptions s ON d.device_key = s.device_key " +
-        "WHERE s.meal_id = ? " +
-        "AND d.registration_token IS NOT NULL;",
-      [mealId],
-      { mode: "read" },
-    );
-    validTokens = queryRes.rows;
+    await db.transaction(async (trx) => {
+      await trx.rawQuery(
+        "UPDATE devices d SET registration_token = NULL, token_timestamp = NULL " +
+          "FROM subscriptions s WHERE d.device_key = s.device_key " +
+          "AND s.meal_id = ? " +
+          "AND d.registration_token IS NOT NULL " +
+          "AND d.token_timestamp IS NOT NULL " +
+          "AND (EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM d.token_timestamp)) * 1000 > ?;",
+        [mealId, TOKEN_EXPIRATION_TIME_MS],
+      );
+      // Fetch valid tokens
+      const queryRes: {
+        rows: { device_key: string; registration_token: string }[];
+      } = await trx.rawQuery(
+        "SELECT d.device_key, d.registration_token FROM devices d " +
+          "JOIN subscriptions s ON d.device_key = s.device_key " +
+          "WHERE s.meal_id = ? " +
+          "AND d.registration_token IS NOT NULL;",
+        [mealId],
+      );
+      validTokens = queryRes.rows;
+    });
   } catch (error) {
     logger.error(
       "Failed to initialize database. Exiting early. Error: ",
@@ -160,20 +160,18 @@ async function updateTokenState(
   tokensToRefresh: Set<string>,
 ) {
   logger.info("Updating token state in the database...");
-  if (tokensToRefresh.size > 0) {
-    try {
-      await Device.updateTokenTimestamps([...tokensToRefresh]);
-      logger.info(`Refreshed ${tokensToRefresh.size} tokens`);
-    } catch (error) {
-      logger.warn(`Failed to refresh tokens: `, error);
-    }
-  }
-  if (tokensToDelete.size > 0) {
-    try {
-      await Device.removeTokens([...tokensToDelete]);
-      logger.info(`Removed invalid ${tokensToDelete.size} tokens`);
-    } catch (error) {
-      logger.warn(`Failed to remove tokens: `, error);
-    }
+  try {
+    await db.transaction(async (trx) => {
+      if (tokensToRefresh.size > 0) {
+        await Device.updateTokenTimestamps([...tokensToRefresh], trx);
+        logger.info(`Refreshed ${tokensToRefresh.size} tokens`);
+      }
+      if (tokensToDelete.size > 0) {
+        await Device.removeTokens([...tokensToDelete], trx);
+        logger.info(`Removed invalid ${tokensToDelete.size} tokens`);
+      }
+    });
+  } catch (error) {
+    logger.error("Failed to update token state in database: ", error);
   }
 }
