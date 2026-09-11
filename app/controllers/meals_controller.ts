@@ -7,19 +7,6 @@ import db from "@adonisjs/lucid/services/db";
 
 import HashesMeal from "#models/hashes_meal";
 import Meal from "#models/meal";
-import WebsiteHash from "#models/website_hash";
-
-const firstHashWithMealsRawValidator = vine.compile(
-  vine.object({
-    rows: vine
-      .array(
-        vine.object({
-          hash: vine.string(),
-        }),
-      )
-      .minLength(1),
-  }),
-);
 
 const paginationValidator = vine.compile(
   vine.object({
@@ -34,6 +21,12 @@ const recentSearchValidator = vine.compile(
   }),
 );
 
+interface WebsiteHashIsOnlineResponse {
+  hash: string;
+  is_online: boolean;
+  updated_at: Date;
+}
+
 export default class MealsController {
   /**
    * @current
@@ -43,57 +36,35 @@ export default class MealsController {
    * @responseBody 500 - {"message":"string","error":"string"}
    */
   async current({ response }: HttpContext) {
-    const lastHash = await WebsiteHash.query()
-      .orderBy("updatedAt", "desc")
-      .first()
-      .addErrorContext(
-        "Failed to fetch the latest menu version from the database",
-      );
-    if (lastHash === null) {
+    const data = await db.rawQuery<{
+      rows: WebsiteHashIsOnlineResponse[];
+    }>(
+      `WITH latest_hash AS (
+        SELECT hash FROM website_hashes
+        ORDER BY updated_at DESC
+        LIMIT 1
+    )
+    SELECT website_hashes.*, website_hashes.hash IN (SELECT hash FROM latest_hash) AS is_online
+      FROM public.website_hashes LEFT JOIN public.hashes_meals ON website_hashes.hash = hashes_meals.hash_fk
+    GROUP BY website_hashes.hash
+    HAVING COUNT(hashes_meals.*) != 0
+    ORDER BY website_hashes.updated_at DESC
+  LIMIT 1`,
+    );
+    const lastHash: WebsiteHashIsOnlineResponse = data.rows[0];
+
+    if (lastHash === undefined) {
       logger.debug("No records in the database - run scrapper");
       return response
         .status(200)
         .json({ meals: [], isMenuOnline: false, lastUpdate: DateTime.now() });
     }
-    let isMenuOnline = true;
-    let todayMeals = await getMealsByHash(lastHash.hash);
-    logger.debug(`fetched ${todayMeals.length} meals from the database}`);
-    if (todayMeals.length !== 0) {
-      return response.status(200).json({
-        meals: getMealsDetails(todayMeals),
-        isMenuOnline,
-        lastUpdate: lastHash.updatedAt,
-      });
-    }
-    isMenuOnline = false;
-    logger.debug(
-      "No meals found in the latest hash - fetching the previous one",
-    );
-    const firstHashWithMealsRaw = await firstHashWithMealsRawValidator.validate(
-      await db.rawQuery(
-        `
-          SELECT website_hashes.hash FROM public.website_hashes LEFT JOIN public.hashes_meals ON website_hashes.hash = hashes_meals.hash_fk
-          GROUP BY website_hashes.hash
-          HAVING COUNT(hashes_meals.*) != 0
-          ORDER BY website_hashes.updated_at DESC
-          LIMIT 1
-        `,
-      ),
-    );
-
-    const firstHashWithMeals = await WebsiteHash.query()
-      .where("hash", firstHashWithMealsRaw.rows[0].hash)
-      .firstOrFail()
-      .addErrorContext(
-        () =>
-          `Failed to fetch the website hash record for hash ${firstHashWithMealsRaw.rows[0].hash}`,
-      );
-    todayMeals = await getMealsByHash(firstHashWithMeals.hash);
-    logger.debug(`fetched ${todayMeals.length} meals from the database}`);
+    const todayMeals = await getMealsByHash(lastHash.hash);
+    logger.debug(`fetched ${todayMeals.length} meals from the database`);
     return response.status(200).json({
       meals: getMealsDetails(todayMeals),
-      isMenuOnline,
-      lastUpdate: firstHashWithMeals.updatedAt,
+      isMenuOnline: lastHash.is_online,
+      lastUpdate: lastHash.updated_at,
     });
   }
 
