@@ -1,38 +1,42 @@
-# this files includes some shit we've changed with czaja
-FROM node:20-bullseye-slim AS base
-
-RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
-
-# All deps stage
-FROM base AS deps
+# syntax=docker/dockerfile:1.26
+FROM node:22-alpine AS base
+RUN apk add --no-cache curl \
+    && mkdir /app \
+    && chown node:node /app
+USER node:node
 WORKDIR /app
-ADD package.json package-lock.json ./
-RUN npm ci
+COPY --parents package.json package-lock.json patches/ ./
 
 # Production only deps stage
-FROM base AS production-deps
-WORKDIR /app
-ADD package.json package-lock.json ./
-RUN npm ci --omit=dev
+FROM base AS prod-deps
+RUN --mount=type=cache,dst=/home/node/.npm,uid=1000,gid=1000 \
+    --mount=type=cache,dst=/tmp/node-compile-cache,uid=1000,gid=1000 \
+    npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 
-# Build stage
-FROM deps AS build
-WORKDIR /app
-ADD . .
-RUN node ace build
+# All deps stage
+FROM prod-deps AS dev-deps
+RUN --mount=type=cache,dst=/home/node/.npm,uid=1000,gid=1000 \
+    --mount=type=cache,dst=/tmp/node-compile-cache,uid=1000,gid=1000 \
+    npm ci --ignore-scripts --no-audit --no-fund
 
 # Production stage
-FROM production-deps
+FROM prod-deps
+# i wish i could chmod/uidmap bind mounts
+USER root:root
+# docker mount magic: mount the context dir into /source, mount devdeps into /source/node_modules, mount tmpfs on /tmp to omit tmp files from the image
+#  start the build, then move build files into the image - no copying between stages 😎
+RUN --mount=type=bind,dst=/source,rw \
+    --mount=type=bind,from=dev-deps,source=/app/node_modules,dst=/source/node_modules \
+    --mount=type=tmpfs,dst=/tmp \
+    cd /source \
+    && node ace build \
+    && rm /source/build/package.json /source/build/package-lock.json \
+    && chown -R node:node /source/build \
+    && mv /source/build/* /app \
+    && mkdir /app/storage \
+    && chown node:node /app/storage
+USER node:node
 ENV NODE_ENV=production
-WORKDIR /app
-
-# Copy docs
-COPY --from=build /app/build /app
-
 EXPOSE 8080
-
-# Set CMD to run the wrapper script
-CMD ["sh", "/app/start.sh"]
+VOLUME /app/storage
+CMD ["./start.sh"]
