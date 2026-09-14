@@ -43,15 +43,15 @@ export default class MealsController {
         SELECT hash FROM website_hashes
         ORDER BY updated_at DESC
         LIMIT 1
-    )
-    SELECT website_hashes.*, website_hashes.hash IN (SELECT hash FROM latest_hash) AS is_online
-      FROM public.website_hashes LEFT JOIN public.hashes_meals ON website_hashes.hash = hashes_meals.hash_fk
-    GROUP BY website_hashes.hash
-    HAVING COUNT(hashes_meals.*) != 0
-    ORDER BY website_hashes.updated_at DESC
-  LIMIT 1`,
+      )
+      SELECT website_hashes.*, website_hashes.hash IN (SELECT hash FROM latest_hash) AS is_online
+        FROM public.website_hashes LEFT JOIN public.hashes_meals ON website_hashes.hash = hashes_meals.hash_fk
+      GROUP BY website_hashes.hash
+      HAVING COUNT(hashes_meals.*) != 0
+      ORDER BY website_hashes.updated_at DESC
+      LIMIT 1`,
     );
-    const lastHash: WebsiteHashIsOnlineResponse = data.rows[0];
+    const lastHash = data.rows.at(0);
 
     if (lastHash === undefined) {
       logger.debug("No records in the database - run scrapper");
