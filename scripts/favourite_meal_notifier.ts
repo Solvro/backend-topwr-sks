@@ -1,3 +1,8 @@
+import { toIBaseError } from "@solvro/error-handling/base";
+import {
+  analyzeErrorStack,
+  prepareReportForLogging,
+} from "@solvro/error-handling/reporting";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 
@@ -172,6 +177,9 @@ async function updateTokenState(
       }
     });
   } catch (error) {
-    logger.error("Failed to update token state in database: ", error);
+    const report = analyzeErrorStack(toIBaseError(error));
+    logger.error(
+      `Failed to update token state in database: ${prepareReportForLogging(report)}`,
+    );
   }
 }

@@ -1,7 +1,11 @@
+import { toIBaseError } from "@solvro/error-handling/base";
+import {
+  analyzeErrorStack,
+  prepareReportForLogging,
+} from "@solvro/error-handling/reporting";
 import * as cheerio from "cheerio";
 import { ElementType } from "domelementtype";
 import { DateTime } from "luxon";
-import assert from "node:assert";
 import { createHash } from "node:crypto";
 
 import logger from "@adonisjs/core/services/logger";
@@ -55,7 +59,7 @@ export async function runScrapper() {
       // Parse the menu
       const meals = await parseMenu(html);
       // Get hashes of meals that were notified recently
-      const recentlyNotifiedMealsSet = await getRecentHashes();
+      const recentlyNotifiedMealsSet = await getRecentHashes(trx);
       for (const meal of meals) {
         const mealEntity = await addMealToDb(meal.name, meal.category, trx);
         if (mealEntity === null) {
@@ -87,17 +91,19 @@ export async function runScrapper() {
       logger.info("Menu updated successfully");
     });
   } catch (error) {
-    assert(error instanceof Error);
-    logger.error(`Failed to update menu: ${error.message}`, error.stack);
+    const report = analyzeErrorStack(toIBaseError(error));
+    logger.error(`Failed to update menu: ${prepareReportForLogging(report)}`);
   }
 }
 
 /**
  * Gets the ids of the meals that have been notified since the current day began (that is, since 00:00:00)
  */
-async function getRecentHashes(): Promise<Set<number>> {
+async function getRecentHashes(
+  trx: TransactionClientContract,
+): Promise<Set<number>> {
   const since = DateTime.now().startOf("day");
-  const recentHashes = await HashesMeal.query()
+  const recentHashes = await HashesMeal.query({ client: trx })
     .select("meal_id")
     .where("created_at", ">", since.toJSDate());
   return new Set<number>(recentHashes.map((hash) => hash.mealId));
@@ -204,10 +210,9 @@ async function addMealToDb(
       return await Meal.create({ name, category }, { client: trx });
     }
   } catch (error) {
-    assert(error instanceof Error);
+    const report = analyzeErrorStack(toIBaseError(error));
     logger.error(
-      `Failed to check or create meal ${name}: ${error.message}`,
-      error.stack,
+      `Failed to check or create meal ${name}: ${prepareReportForLogging(report)}`,
     );
     return null;
   }
