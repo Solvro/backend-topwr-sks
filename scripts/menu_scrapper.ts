@@ -84,7 +84,7 @@ export async function runScrapper() {
           logger.info(
             `Meal ${meal.name} has not been notified about recently. Sending notification...`,
           );
-          await notifyFavouriteMeal(mealEntity.id, meal.name);
+          await notifyFavouriteMeal(mealEntity.id, meal.name, trx);
         }
         recentlyNotifiedMealsSet.add(mealEntity.id);
       }
