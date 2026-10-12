@@ -1,8 +1,13 @@
+import { toIBaseError } from "@solvro/error-handling/base";
+import {
+  analyzeErrorStack,
+  prepareReportForLogging,
+} from "@solvro/error-handling/reporting";
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getMessaging } from "firebase-admin/messaging";
 
 import logger from "@adonisjs/core/services/logger";
-import db from "@adonisjs/lucid/services/db";
+import type { TransactionClientContract } from "@adonisjs/lucid/types/database";
 
 import Device, { TOKEN_EXPIRATION_TIME_MS } from "#models/device";
 import Meal from "#models/meal";
@@ -29,7 +34,11 @@ interface FetchValidTokensQueryReturnValue {
   registration_token: string;
 }
 
-export async function notifyFavouriteMeal(mealId: number, mealName: string) {
+export async function notifyFavouriteMeal(
+  mealId: number,
+  mealName: string,
+  trx: TransactionClientContract,
+) {
   logger.info(`Processing subscriptions for meal_id=${mealId}...`);
   // Initialize
   let validTokens: FetchValidTokensQueryReturnValue[] = [];
@@ -47,7 +56,7 @@ export async function notifyFavouriteMeal(mealId: number, mealName: string) {
       }
     });
     // Expire old tokens
-    await db.rawQuery(
+    await trx.rawQuery(
       "UPDATE devices d SET registration_token = NULL, token_timestamp = NULL " +
         "FROM subscriptions s WHERE d.device_key = s.device_key " +
         "AND s.meal_id = ? " +
@@ -55,18 +64,16 @@ export async function notifyFavouriteMeal(mealId: number, mealName: string) {
         "AND d.token_timestamp IS NOT NULL " +
         "AND (EXTRACT(EPOCH FROM NOW()) - EXTRACT(EPOCH FROM d.token_timestamp)) * 1000 > ?;",
       [mealId, TOKEN_EXPIRATION_TIME_MS],
-      { mode: "write" },
     );
     // Fetch valid tokens
     const queryRes: {
       rows: { device_key: string; registration_token: string }[];
-    } = await db.rawQuery(
+    } = await trx.rawQuery(
       "SELECT d.device_key, d.registration_token FROM devices d " +
         "JOIN subscriptions s ON d.device_key = s.device_key " +
         "WHERE s.meal_id = ? " +
         "AND d.registration_token IS NOT NULL;",
       [mealId],
-      { mode: "read" },
     );
     validTokens = queryRes.rows;
   } catch (error) {
@@ -74,7 +81,7 @@ export async function notifyFavouriteMeal(mealId: number, mealName: string) {
       "Failed to initialize database. Exiting early. Error: ",
       error,
     );
-    return;
+    throw error;
   }
   if (validTokens.length === 0) {
     logger.info("No registration tokens found. Exiting early.");
@@ -99,10 +106,7 @@ export async function notifyFavouriteMeal(mealId: number, mealName: string) {
       },
     };
   });
-  // Active tokens
-  const tokensToRefresh = new Set<string>();
-  // Expired/Invalid tokens
-  const tokensToDelete = new Set<string>();
+
   // Init FB
   try {
     if (!getApps().length) {
@@ -116,64 +120,84 @@ export async function notifyFavouriteMeal(mealId: number, mealName: string) {
       "Failed to initialize Firebase app. Exiting early. Error: ",
       error,
     );
-    return;
+    throw error;
   }
+
+  //Notify
+  const { tokensToDelete, tokensToRefresh, successCount } =
+    await firebaseNotify(validMessages);
+
+  logger.info(
+    `Succesfully sent ${successCount} notifications to subscribed devices`,
+  );
+
+  await updateTokenState(tokensToDelete, tokensToRefresh, trx);
+}
+
+async function firebaseNotify(validMessages: FBDebugMessage[]) {
   const messagingService = getMessaging();
+
+  // Active tokens
+  const tokensToRefresh = new Set<string>();
+  // Expired/Invalid tokens
+  const tokensToDelete = new Set<string>();
+
   let successCount = 0;
 
-  for (const message of validMessages) {
-    try {
-      await messagingService.send(message.message);
-      tokensToRefresh.add(message.deviceKey); // Token state was refresh in FB, so it should be refreshed on our end
-      logger.debug(`Device ${message.deviceKey}: Success`);
+  const messages = validMessages.map((message) => message.message);
+
+  const batchResponse = await messagingService.sendEach(messages);
+
+  batchResponse.responses.forEach((response, index) => {
+    const deviceKey = validMessages[index].deviceKey;
+
+    if (response.success) {
+      tokensToRefresh.add(deviceKey);
       successCount++;
-    } catch (error) {
-      const fbError = error as { code: string; message: string };
+    } else {
+      const fbError = response.error as { code: string; message: string };
       if (fbError.code === "messaging/registration-token-not-registered") {
         // Token was not expired in our DB but FB deemed it expired
         logger.debug(
-          `Device ${message.deviceKey}: Failure - Token expired or not registered in FB`,
+          `Device ${deviceKey}: Failure - Token expired or not registered in FB`,
         );
-        tokensToDelete.add(message.deviceKey);
+        tokensToDelete.add(deviceKey);
       } else if (fbError.code === "messaging/invalid-argument") {
         // Token is not valid because it is simply not - not due to expiry
-        logger.debug(
-          `Device ${message.deviceKey}: Failure - Token is not valid`,
-        );
-        tokensToDelete.add(message.deviceKey);
+        logger.debug(`Device ${deviceKey}: Failure - Token is not valid`);
+        tokensToDelete.add(deviceKey);
       } else {
         // Error not related to the token itself
         logger.warn(
-          `Device ${message.deviceKey}: Failure - unknown error ${fbError.code}. Error: ${fbError.message}`,
+          `Device ${deviceKey}: Failure - unknown error ${fbError.code}. Error: ${fbError.message}`,
         );
       }
     }
-  }
-  logger.info(
-    `Successfully sent ${successCount} out of possible ${validMessages.length} messages.`,
-  );
-  await updateTokenState(tokensToDelete, tokensToRefresh);
+  });
+
+  return { tokensToDelete, tokensToRefresh, successCount };
 }
 
 async function updateTokenState(
   tokensToDelete: Set<string>,
   tokensToRefresh: Set<string>,
+  trx: TransactionClientContract,
 ) {
   logger.info("Updating token state in the database...");
-  if (tokensToRefresh.size > 0) {
-    try {
-      await Device.updateTokenTimestamps([...tokensToRefresh]);
+  try {
+    if (tokensToRefresh.size > 0) {
+      await Device.updateTokenTimestamps([...tokensToRefresh], trx);
       logger.info(`Refreshed ${tokensToRefresh.size} tokens`);
-    } catch (error) {
-      logger.warn(`Failed to refresh tokens: `, error);
     }
-  }
-  if (tokensToDelete.size > 0) {
-    try {
-      await Device.removeTokens([...tokensToDelete]);
+    if (tokensToDelete.size > 0) {
+      await Device.removeTokens([...tokensToDelete], trx);
       logger.info(`Removed invalid ${tokensToDelete.size} tokens`);
-    } catch (error) {
-      logger.warn(`Failed to remove tokens: `, error);
     }
+  } catch (error) {
+    const report = analyzeErrorStack(toIBaseError(error));
+    logger.error(
+      `Failed to update token state in database: ${prepareReportForLogging(report)}`,
+    );
+    throw error;
   }
 }
