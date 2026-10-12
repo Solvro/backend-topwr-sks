@@ -14,41 +14,48 @@ const SubscriptionsController = () =>
 
 router
   .group(() => {
-    router.get("/meals", [MealsController, "index"]);
-    router.get("/meals/recent", [MealsController, "recent"]);
-    router.get("/meals/current", [MealsController, "current"]);
+    router
+      .group(() => {
+        router.get("/", [MealsController, "index"]);
+        router.get("/recent", [MealsController, "recent"]);
+        router.get("/current", [MealsController, "current"]);
+      })
+      .prefix("/meals");
 
-    router.get("/sks-users/current", [SksUsersController, "latest"]);
-    router.get("/sks-users/today", [SksUsersController, "today"]);
+    router
+      .group(() => {
+        router.get("/current", [SksUsersController, "latest"]);
+        router.get("/today", [SksUsersController, "today"]);
+      })
+      .prefix("/sks-users");
 
     router.get("/info", [InfoController, "openingHours"]);
 
-    router.put("/device/registration-token", [
-      RegistrationTokensController,
-      "updateOrCreate",
-    ]);
-    router.get("/device/registration-token/:deviceKey", [
-      RegistrationTokensController,
-      "hasToken",
-    ]);
+    router
+      .group(() => {
+        router.put("/", [RegistrationTokensController, "updateOrCreate"]);
+        router.get("/:deviceKey", [RegistrationTokensController, "hasToken"]);
+      })
+      .prefix("/device/registration-token");
 
-    router.post("/subscriptions/toggle", [SubscriptionsController, "toggle"]);
-    router.get("/subscriptions/:deviceKey", [
-      SubscriptionsController,
-      "listForDevice",
-    ]);
+    router
+      .group(() => {
+        router.post("/toggle", [SubscriptionsController, "toggle"]);
+        router.get("/:deviceKey", [SubscriptionsController, "listForDevice"]);
+      })
+      .prefix("/subscriptions");
 
     // returns swagger in YAML
-    router.get("/swagger", async () => {
+    router.get("/swagger", () => {
       return AutoSwagger.default.docs(router.toJSON(), swagger);
     });
 
     // Renders Swagger-UI and passes YAML-output of /swagger
-    router.get("/docs", async () => {
+    router.get("/docs", () => {
       return AutoSwagger.default.ui("/api/v1/swagger", swagger);
     });
 
-    router.get("/healthcheck", async () => {
+    router.get("/healthcheck", () => {
       return "elo żelo";
     });
   })
@@ -62,11 +69,9 @@ router.get("/metrics", [
 // Reroute some paths to docs
 const redirectPaths = ["/", "/api", "/api/v1", "/api/docs", "/docs"];
 redirectPaths.forEach((path) => {
-  router.get(path, async ({ response }) => {
-    return response.redirect("/api/v1/docs");
-  });
+  router.on(path).redirectToPath("/api/v1/docs");
 });
 
-router.get("/health", async () => {
+router.get("/health", () => {
   return { elo: "żelo" };
 });
