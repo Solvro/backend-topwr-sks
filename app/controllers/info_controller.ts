@@ -15,7 +15,7 @@ export default class InfoController {
         },
         cafe: {
           openingTime: "pon.-czw. 7:30",
-          closingTime: "18:00, pt. 7:30 - 16:00",
+          closingTime: "17:00, pt. 7:30 - 16:00",
         },
       },
     };
